@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Khôlles — MP2I</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -16,7 +14,6 @@
 
         <div class="logo">
             <div class="logo-icon">M</div>
-
             <div>
                 <strong>MP2I</strong>
                 <span>Dashboard</span>
@@ -24,7 +21,6 @@
         </div>
 
         <nav>
-
             <a href="index.html">
                 <span>⌂</span>
                 Accueil
@@ -49,16 +45,13 @@
                 <span>▤</span>
                 DS
             </a>
-
         </nav>
 
         <div class="sidebar-bottom">
-
             <a href="index.html">
                 <span>←</span>
                 Retour
             </a>
-
         </div>
 
     </aside>
@@ -69,19 +62,13 @@
         <header class="topbar">
 
             <div>
-
                 <p class="eyebrow">ESPACE PERSONNEL</p>
-
                 <h1>Khôlles</h1>
-
             </div>
 
             <div class="profile">
-
                 <div class="avatar">D</div>
-
                 <span>Dieu</span>
-
             </div>
 
         </header>
@@ -90,7 +77,6 @@
         <section class="welcome glass">
 
             <div>
-
                 <p class="eyebrow">PROGRAMMES</p>
 
                 <h2>Programmes de khôlles</h2>
@@ -98,14 +84,11 @@
                 <p class="muted">
                     Les programmes de maths sont récupérés automatiquement.
                 </p>
-
             </div>
 
             <div class="status">
-
                 <span></span>
                 Maths
-
             </div>
 
         </section>
@@ -114,13 +97,9 @@
         <section>
 
             <div class="section-header">
-
                 <p class="eyebrow">MATHÉMATIQUES</p>
-
                 <h2>Programmes disponibles</h2>
-
             </div>
-
 
             <div id="programmes" class="grid">
 
@@ -142,15 +121,26 @@
 
     <script>
 
+        // =========================
+        // THÈME
+        // =========================
+
+        const savedTheme = localStorage.getItem("theme") || "purple";
+
+        document.body.classList.add("theme-" + savedTheme);
+
+
+        // =========================
+        // PROGRAMMES
+        // =========================
+
         const container = document.getElementById("programmes");
 
-
         fetch("programmes/maths/maths.json")
-
             .then(response => {
 
                 if (!response.ok) {
-                    throw new Error("Impossible de récupérer les programmes.");
+                    throw new Error("maths.json introuvable");
                 }
 
                 return response.json();
@@ -170,9 +160,7 @@
                     `;
 
                     return;
-
                 }
-
 
                 data.programmes.forEach(programme => {
 
@@ -180,28 +168,21 @@
 
                     card.className = "dashboard-card glass";
 
-                    card.href =
-                        "programmes/maths/" + programme.fichier;
+                    card.href = "programmes/maths/" + programme.fichier;
 
                     card.target = "_blank";
 
 
                     card.innerHTML = `
-
                         <div class="card-icon">◈</div>
 
                         <div>
-
                             <h3>${programme.semaine}</h3>
-
                             <p>${programme.titre}</p>
-
                         </div>
 
                         <span class="arrow">→</span>
-
                     `;
-
 
                     container.appendChild(card);
 
@@ -214,13 +195,9 @@
                 console.error(error);
 
                 container.innerHTML = `
-
                     <div class="glass loading-card">
-
                         Impossible de charger les programmes.
-
                     </div>
-
                 `;
 
             });
