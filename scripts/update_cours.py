@@ -106,6 +106,17 @@ def main():
         )
 
     print("Page déverrouillée.")
+    test_url = "https://maths-cpge.fr/docs/chapitres/ch06-cours.pdf"
+
+    test = session.get(
+        test_url,
+        headers=headers,
+        timeout=30
+    )
+
+    print("TEST PDF :", test.status_code)
+    print("TYPE :", test.headers.get("Content-Type"))
+    print("TAILLE :", len(test.content))
 
     soup = BeautifulSoup(
         unlocked.text,
