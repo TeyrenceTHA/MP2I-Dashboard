@@ -655,3 +655,33 @@ body.theme-green .status span {
     color: #8e94aa;
     font-size: 13px;
 }
+.course-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.mini-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 7px 14px;
+
+    border-radius: 9px;
+
+    background: rgba(255, 255, 255, 0.08);
+
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 12px;
+
+    transition: 0.2s;
+}
+
+.mini-button:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+}
