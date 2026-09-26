@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from pathlib import Path
@@ -10,6 +11,7 @@ from bs4 import BeautifulSoup
 SOURCE_URL = "https://maths-cpge.fr/chapitres/"
 
 OUTPUT_DIR = Path("programmes/cours")
+JSON_FILE = OUTPUT_DIR / "cours.json"
 
 PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
 
@@ -29,7 +31,6 @@ def main():
 
     print("Connexion à :", SOURCE_URL)
 
-    # Récupérer la page protégée
     response = session.get(
         SOURCE_URL,
         headers=headers,
@@ -42,19 +43,7 @@ def main():
         response.text,
         "html.parser"
     )
-    print()
-    print("=== LIENS PDF TROUVÉS ===")
 
-    for link in soup.find_all("a", href=True):
-        href = link["href"]
-
-        if ".pdf" in href.lower():
-            print(href)
-
-    print("=== FIN ===")
-    print()
-
-    # Trouver le formulaire de mot de passe
     form = soup.find("form")
 
     if not form:
@@ -69,7 +58,6 @@ def main():
         action
     )
 
-    # Récupérer les champs cachés
     data = {}
 
     for input_tag in form.find_all("input"):
@@ -82,7 +70,6 @@ def main():
         if input_tag.get("type", "text") == "hidden":
             data[name] = input_tag.get("value", "")
 
-    # Champ mot de passe
     password_input = form.find(
         "input",
         {"type": "password"}
@@ -94,11 +81,6 @@ def main():
         )
 
     password_name = password_input.get("name")
-
-    if not password_name:
-        raise RuntimeError(
-            "Nom du champ mot de passe introuvable."
-        )
 
     data[password_name] = PASSWORD
 
@@ -113,10 +95,9 @@ def main():
 
     unlocked.raise_for_status()
 
-    # Vérification
     if "Ce contenu est protégé par un mot de passe" in unlocked.text:
         raise RuntimeError(
-            "Mot de passe incorrect ou page toujours protégée."
+            "Le mot de passe n'a pas permis de déverrouiller la page."
         )
 
     print("Page déverrouillée.")
@@ -126,77 +107,68 @@ def main():
         "html.parser"
     )
 
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    programmes = []
 
-    # Chercher tous les PDF de chapitres
-    pdf_links = soup.find_all(
-        "a",
-        href=True
-    )
-
-    downloaded = 0
-
-    for link in pdf_links:
+    for link in soup.find_all("a", href=True):
 
         href = link["href"]
 
-        # On ne garde que les PDF de chapitres
-        if not re.search(
-            r"/docs/chapitres/.*\.pdf$",
+        match = re.search(
+            r"/docs/chapitres/(ch\d+)-(cours|td)\.pdf",
             href,
             re.IGNORECASE
-        ):
+        )
+
+        if not match:
             continue
+
+        chapitre = match.group(1).lower()
+        type_document = match.group(2).lower()
 
         url = urljoin(
             SOURCE_URL,
             href
         )
 
-        filename = Path(href).name
+        programmes.append({
+            "chapitre": chapitre,
+            "type": type_document,
+            "url": url
+        })
 
-        output_path = OUTPUT_DIR / filename
+        print(
+            "Trouvé :",
+            chapitre,
+            type_document,
+            url
+        )
 
-        print("Téléchargement :", filename)
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-        try:
-
-            pdf = session.get(
-                url,
-                headers=headers,
-                timeout=30
-            )
-
-            pdf.raise_for_status()
-
-            if not pdf.content.startswith(b"%PDF"):
-                print(
-                    "Attention : fichier non reconnu comme PDF."
-                )
-                continue
-
-            output_path.write_bytes(
-                pdf.content
-            )
-
-            downloaded += 1
-
-        except Exception as error:
-
-            print(
-                "Erreur pour",
-                filename,
-                ":",
-                error
-            )
+    JSON_FILE.write_text(
+        json.dumps(
+            {
+                "source": SOURCE_URL,
+                "programmes": programmes
+            },
+            ensure_ascii=False,
+            indent=4
+        ),
+        encoding="utf-8"
+    )
 
     print()
     print(
-        "Nombre de PDF téléchargés :",
-        downloaded
+        "Nombre de documents trouvés :",
+        len(programmes)
+    )
+
+    print(
+        "JSON créé :",
+        JSON_FILE
     )
 
 
