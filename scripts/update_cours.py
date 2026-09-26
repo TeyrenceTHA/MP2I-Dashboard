@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup
 SOURCE_URL = "https://maths-cpge.fr/chapitres/"
 
 OUTPUT_DIR = Path("programmes/cours")
-HTML_FILE = OUTPUT_DIR / "cours.html"
 
 PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
 
@@ -30,7 +29,7 @@ def main():
 
     print("Connexion à :", SOURCE_URL)
 
-    # Première requête : récupérer le formulaire
+    # Récupérer la page protégée
     response = session.get(
         SOURCE_URL,
         headers=headers,
@@ -39,8 +38,12 @@ def main():
 
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser"
+    )
 
+    # Trouver le formulaire de mot de passe
     form = soup.find("form")
 
     if not form:
@@ -55,7 +58,7 @@ def main():
         action
     )
 
-    # Récupérer les champs cachés du formulaire
+    # Récupérer les champs cachés
     data = {}
 
     for input_tag in form.find_all("input"):
@@ -65,18 +68,10 @@ def main():
         if not name:
             continue
 
-        input_type = input_tag.get(
-            "type",
-            "text"
-        )
+        if input_tag.get("type", "text") == "hidden":
+            data[name] = input_tag.get("value", "")
 
-        if input_type in ["hidden"]:
-            data[name] = input_tag.get(
-                "value",
-                ""
-            )
-
-    # Chercher le champ mot de passe
+    # Champ mot de passe
     password_input = form.find(
         "input",
         {"type": "password"}
@@ -107,10 +102,10 @@ def main():
 
     unlocked.raise_for_status()
 
-    # Vérifier que la page est réellement déverrouillée
+    # Vérification
     if "Ce contenu est protégé par un mot de passe" in unlocked.text:
         raise RuntimeError(
-            "Le mot de passe n'a pas permis de déverrouiller la page."
+            "Mot de passe incorrect ou page toujours protégée."
         )
 
     print("Page déverrouillée.")
@@ -125,13 +120,73 @@ def main():
         exist_ok=True
     )
 
-    # Sauvegarder la page déverrouillée
-    HTML_FILE.write_text(
-        soup.prettify(),
-        encoding="utf-8"
+    # Chercher tous les PDF de chapitres
+    pdf_links = soup.find_all(
+        "a",
+        href=True
     )
 
-    print("Page enregistrée :", HTML_FILE)
+    downloaded = 0
+
+    for link in pdf_links:
+
+        href = link["href"]
+
+        # On ne garde que les PDF de chapitres
+        if not re.search(
+            r"/docs/chapitres/.*\.pdf$",
+            href,
+            re.IGNORECASE
+        ):
+            continue
+
+        url = urljoin(
+            SOURCE_URL,
+            href
+        )
+
+        filename = Path(href).name
+
+        output_path = OUTPUT_DIR / filename
+
+        print("Téléchargement :", filename)
+
+        try:
+
+            pdf = session.get(
+                url,
+                headers=headers,
+                timeout=30
+            )
+
+            pdf.raise_for_status()
+
+            if not pdf.content.startswith(b"%PDF"):
+                print(
+                    "Attention : fichier non reconnu comme PDF."
+                )
+                continue
+
+            output_path.write_bytes(
+                pdf.content
+            )
+
+            downloaded += 1
+
+        except Exception as error:
+
+            print(
+                "Erreur pour",
+                filename,
+                ":",
+                error
+            )
+
+    print()
+    print(
+        "Nombre de PDF téléchargés :",
+        downloaded
+    )
 
 
 if __name__ == "__main__":
