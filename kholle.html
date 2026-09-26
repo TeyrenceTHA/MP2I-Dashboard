@@ -162,7 +162,7 @@
                     return;
                 }
 
-                data.programmes.forEach(programme => {
+                data.programmes.forEach((programme, index) => {
 
                     const card = document.createElement("a");
 
@@ -172,9 +172,8 @@
 
                     card.target = "_blank";
 
-
                     card.innerHTML = `
-                        <div class="card-icon">◈</div>
+                        <div class="card-icon">${index + 1}</div>
 
                         <div>
                             <h3>${programme.semaine}</h3>
@@ -185,7 +184,6 @@
                     `;
 
                     container.appendChild(card);
-
                 });
 
             })
