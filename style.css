@@ -641,3 +641,17 @@ body.theme-green .status span {
 .theme-dot.green {
     background: #1ae19b;
 }
+.section-header {
+    margin-bottom: 18px;
+}
+
+.section-header h2 {
+    font-size: 20px;
+}
+
+.loading-card {
+    padding: 28px;
+    border-radius: 18px;
+    color: #8e94aa;
+    font-size: 13px;
+}
