@@ -1,358 +1,181 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cours — MP2I</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+import json
+import os
+import re
+from pathlib import Path
+from urllib.parse import urljoin
 
-<body>
+import requests
+from bs4 import BeautifulSoup
 
-    <aside class="sidebar glass">
 
-        <div class="logo">
-            <span>MP2I</span>
-        </div>
+SOURCE_URL = "https://maths-cpge.fr/chapitres/"
 
-        <nav>
+OUTPUT_DIR = Path("programmes/cours")
+JSON_FILE = OUTPUT_DIR / "cours.json"
 
-            <a href="index.html">
-                <span>⌂</span>
-                Accueil
-            </a>
+PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
 
-            <a href="kholle.html">
-                <span>▣</span>
-                Khôlles
-            </a>
 
-            <a href="revisions.html">
-                <span>◈</span>
-                Révisions
-            </a>
+def main():
 
-            <a class="active" href="cours.html">
-                <span>▤</span>
-                Cours
-            </a>
+    if not PASSWORD:
+        raise RuntimeError(
+            "Le secret MATHS_CPGE_PASSWORD est introuvable."
+        )
 
-            <a href="ds.html">
-                <span>▥</span>
-                DS
-            </a>
+    session = requests.Session()
 
-        </nav>
+    headers = {
+        "User-Agent": "MP2I-Dashboard/1.0"
+    }
 
-        <div class="sidebar-bottom">
+    print("Connexion à :", SOURCE_URL)
 
-            <a href="#" id="settingsButton">
-                <span>⚙</span>
-                Paramètres
-            </a>
+    response = session.get(
+        SOURCE_URL,
+        headers=headers,
+        timeout=30
+    )
 
-        </div>
+    response.raise_for_status()
 
-    </aside>
+    soup = BeautifulSoup(
+        response.text,
+        "html.parser"
+    )
 
+    form = soup.find("form")
 
-    <main class="main-content">
+    if not form:
+        raise RuntimeError(
+            "Formulaire de mot de passe introuvable."
+        )
 
-        <div class="welcome">
-            <h1>Cours</h1>
-            <p>
-                Retrouvez les cours et TD de mathématiques.
-            </p>
-        </div>
+    action = form.get("action") or SOURCE_URL
 
-        <section>
+    action = urljoin(
+        SOURCE_URL,
+        action
+    )
 
-            <div class="section-header">
-                <h2>Chapitres</h2>
-            </div>
+    data = {}
 
-            <div id="cours-container" class="dashboard-grid">
+    for input_tag in form.find_all("input"):
 
-                <div class="glass loading-card">
-                    Chargement des cours...
-                </div>
+        name = input_tag.get("name")
 
-            </div>
+        if not name:
+            continue
 
-        </section>
+        if input_tag.get("type", "text") == "hidden":
+            data[name] = input_tag.get("value", "")
 
-    </main>
+    password_input = form.find(
+        "input",
+        {"type": "password"}
+    )
 
+    if not password_input:
+        raise RuntimeError(
+            "Champ de mot de passe introuvable."
+        )
 
-    <div id="themePanel" class="theme-panel glass">
+    password_name = password_input.get("name")
 
-        <h3>Thème</h3>
+    if not password_name:
+        raise RuntimeError(
+            "Nom du champ mot de passe introuvable."
+        )
 
-        <button onclick="setTheme('purple')">
-            <span class="theme-dot purple"></span>
-            Violet
-        </button>
+    data[password_name] = PASSWORD
 
-        <button onclick="setTheme('red')">
-            <span class="theme-dot red"></span>
-            Rouge
-        </button>
+    print("Envoi du mot de passe...")
 
-        <button onclick="setTheme('green')">
-            <span class="theme-dot green"></span>
-            Vert
-        </button>
+    unlocked = session.post(
+        action,
+        data=data,
+        headers=headers,
+        timeout=30
+    )
 
-    </div>
-
-
-    <script>
-
-        const settingsButton =
-            document.getElementById("settingsButton");
-
-        const themePanel =
-            document.getElementById("themePanel");
-
-
-        if (settingsButton && themePanel) {
-
-            settingsButton.addEventListener(
-                "click",
-                function(event) {
-
-                    event.preventDefault();
-
-                    themePanel.classList.toggle("show");
-
-                }
-            );
-
-        }
-
-
-        function setTheme(theme) {
-
-            document.body.classList.remove(
-                "theme-purple",
-                "theme-red",
-                "theme-green"
-            );
-
-            document.body.classList.add(
-                "theme-" + theme
-            );
-
-            localStorage.setItem(
-                "theme",
-                theme
-            );
-
-        }
-
-
-        const savedTheme =
-            localStorage.getItem("theme") || "purple";
-
-        setTheme(savedTheme);
-
-
-        /*
-         * CHARGEMENT DES COURS
-         */
-
-        const container =
-            document.getElementById("cours-container");
-
-
-        fetch("programmes/cours/cours.json")
-
-            .then(response => {
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        "cours.json introuvable"
-                    );
-
-                }
-
-                return response.json();
-
-            })
-
-            .then(data => {
-
-                container.innerHTML = "";
-
-
-                if (
-                    !data.programmes ||
-                    data.programmes.length === 0
-                ) {
-
-                    container.innerHTML = `
-                        <div class="glass loading-card">
-                            Aucun cours disponible.
-                        </div>
-                    `;
-
-                    return;
-
-                }
-
-
-                /*
-                 * Regrouper les documents
-                 * par chapitre
-                 */
-
-                const chapitres = {};
-
-
-                data.programmes.forEach(
-                    document => {
-
-                        const chapitre =
-                            document.chapitre;
-
-                        if (!chapitres[chapitre]) {
-
-                            chapitres[chapitre] = {};
-
-                        }
-
-                        chapitres[chapitre][
-                            document.type
-                        ] = document.url;
-
-                    }
-                );
-
-
-                /*
-                 * Trier les chapitres
-                 */
-
-                const liste =
-                    Object.keys(chapitres)
-                    .sort(
-                        (a, b) => {
-
-                            const numA =
-                                parseInt(
-                                    a.replace("ch", "")
-                                );
-
-                            const numB =
-                                parseInt(
-                                    b.replace("ch", "")
-                                );
-
-                            return numA - numB;
-
-                        }
-                    );
-
-
-                /*
-                 * Créer les cartes
-                 */
-
-                liste.forEach(
-                    chapitre => {
-
-                        const numero =
-                            parseInt(
-                                chapitre.replace("ch", "")
-                            );
-
-
-                        const card =
-                            document.createElement("div");
-
-                        card.className =
-                            "dashboard-card glass";
-
-
-                        card.innerHTML = `
-
-                            <div class="card-icon">
-                                ${numero}
-                            </div>
-
-                            <div class="card-content">
-
-                                <h3>
-                                    Chapitre ${numero}
-                                </h3>
-
-                                <div class="course-buttons">
-
-                                    ${
-                                        chapitres[chapitre].cours
-                                        ?
-                                        `
-                                        <a
-                                            class="mini-button"
-                                            href="${chapitres[chapitre].cours}"
-                                            target="_blank"
-                                        >
-                                            Cours
-                                        </a>
-                                        `
-                                        :
-                                        ""
-                                    }
-
-                                    ${
-                                        chapitres[chapitre].td
-                                        ?
-                                        `
-                                        <a
-                                            class="mini-button"
-                                            href="${chapitres[chapitre].td}"
-                                            target="_blank"
-                                        >
-                                            TD
-                                        </a>
-                                        `
-                                        :
-                                        ""
-                                    }
-
-                                </div>
-
-                            </div>
-
-                        `;
-
-
-                        container.appendChild(card);
-
-                    }
-                );
-
-            })
-
-            .catch(error => {
-
-                console.error(error);
-
-                container.innerHTML = `
-
-                    <div class="glass loading-card">
-
-                        Impossible de charger
-                        les cours.
-
-                    </div>
-
-                `;
-
-            });
-
-    </script>
-
-</body>
-</html>
+    unlocked.raise_for_status()
+
+    if "Ce contenu est protégé par un mot de passe" in unlocked.text:
+        raise RuntimeError(
+            "Le mot de passe n'a pas permis de déverrouiller la page."
+        )
+
+    print("Page déverrouillée.")
+
+    soup = BeautifulSoup(
+        unlocked.text,
+        "html.parser"
+    )
+
+    programmes = []
+
+    for link in soup.find_all("a", href=True):
+
+        href = link["href"]
+
+        match = re.search(
+            r"/docs/chapitres/(ch\d+)-(cours|td)\.pdf",
+            href,
+            re.IGNORECASE
+        )
+
+        if not match:
+            continue
+
+        chapitre = match.group(1).lower()
+        type_document = match.group(2).lower()
+
+        url = urljoin(
+            SOURCE_URL,
+            href
+        )
+
+        programmes.append({
+            "chapitre": chapitre,
+            "type": type_document,
+            "url": url
+        })
+
+        print(
+            "Trouvé :",
+            chapitre,
+            type_document,
+            url
+        )
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    JSON_FILE.write_text(
+        json.dumps(
+            {
+                "source": SOURCE_URL,
+                "programmes": programmes
+            },
+            ensure_ascii=False,
+            indent=4
+        ),
+        encoding="utf-8"
+    )
+
+    print()
+    print(
+        "Nombre de documents trouvés :",
+        len(programmes)
+    )
+
+    print(
+        "JSON créé :",
+        JSON_FILE
+    )
+
+
+if __name__ == "__main__":
+    main()
