@@ -42,6 +42,17 @@ def main():
         response.text,
         "html.parser"
     )
+    print()
+    print("=== LIENS PDF TROUVÉS ===")
+
+    for link in soup.find_all("a", href=True):
+        href = link["href"]
+
+        if ".pdf" in href.lower():
+            print(href)
+
+    print("=== FIN ===")
+    print()
 
     # Trouver le formulaire de mot de passe
     form = soup.find("form")
