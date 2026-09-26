@@ -26,6 +26,7 @@ jobs:
 
       - name: Récupérer les cours
         env:
+          MATHS_CPGE_ID: ${{ secrets.MATHS_CPGE_ID }}
           MATHS_CPGE_PASSWORD: ${{ secrets.MATHS_CPGE_PASSWORD }}
         run: python scripts/update_cours.py
 
