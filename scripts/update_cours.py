@@ -192,6 +192,11 @@ def main():
                 pdf.status_code
             )
 
+            print(
+                "WWW-Authenticate :",
+                pdf.headers.get("WWW-Authenticate")
+            )
+
             pdf.raise_for_status()
 
             if not pdf.content.startswith(b"%PDF"):
