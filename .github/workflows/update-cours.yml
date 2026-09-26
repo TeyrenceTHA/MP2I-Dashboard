@@ -1,176 +1,43 @@
-import json
-import os
-import re
-from pathlib import Path
-from urllib.parse import urljoin
+name: Mise à jour des cours
 
-import requests
-from bs4 import BeautifulSoup
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
 
+permissions:
+  contents: write
 
-SOURCE_URL = "https://maths-cpge.fr/chapitres/"
+jobs:
+  update-cours:
+    runs-on: ubuntu-latest
 
-OUTPUT_DIR = Path("programmes/cours")
-JSON_FILE = OUTPUT_DIR / "cours.json"
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
 
-PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
+      - name: Installer les dépendances
+        run: pip install requests beautifulsoup4
 
-def main():
+      - name: Récupérer les cours
+        env:
+          MATHS_CPGE_PASSWORD: ${{ secrets.MATHS_CPGE_PASSWORD }}
+        run: python scripts/update_cours.py
 
-    if not PASSWORD:
-        raise RuntimeError(
-            "Le secret MATHS_CPGE_PASSWORD est introuvable."
-        )
+      - name: Enregistrer les changements
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add programmes/cours/
 
-    session = requests.Session()
-
-    headers = {
-        "User-Agent": "MP2I-Dashboard/1.0"
-    }
-
-    print("Connexion à :", SOURCE_URL)
-
-    response = session.get(
-        SOURCE_URL,
-        headers=headers,
-        timeout=30
-    )
-
-    response.raise_for_status()
-
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
-
-    form = soup.find("form")
-
-    if not form:
-        raise RuntimeError(
-            "Formulaire de mot de passe introuvable."
-        )
-
-    action = form.get("action") or SOURCE_URL
-
-    action = urljoin(
-        SOURCE_URL,
-        action
-    )
-
-    data = {}
-
-    for input_tag in form.find_all("input"):
-
-        name = input_tag.get("name")
-
-        if not name:
-            continue
-
-        if input_tag.get("type", "text") == "hidden":
-            data[name] = input_tag.get("value", "")
-
-    password_input = form.find(
-        "input",
-        {"type": "password"}
-    )
-
-    if not password_input:
-        raise RuntimeError(
-            "Champ de mot de passe introuvable."
-        )
-
-    password_name = password_input.get("name")
-
-    data[password_name] = PASSWORD
-
-    print("Envoi du mot de passe...")
-
-    unlocked = session.post(
-        action,
-        data=data,
-        headers=headers,
-        timeout=30
-    )
-
-    unlocked.raise_for_status()
-
-    if "Ce contenu est protégé par un mot de passe" in unlocked.text:
-        raise RuntimeError(
-            "Le mot de passe n'a pas permis de déverrouiller la page."
-        )
-
-    print("Page déverrouillée.")
-
-    soup = BeautifulSoup(
-        unlocked.text,
-        "html.parser"
-    )
-
-    programmes = []
-
-    for link in soup.find_all("a", href=True):
-
-        href = link["href"]
-
-        match = re.search(
-            r"/docs/chapitres/(ch\d+)-(cours|td)\.pdf",
-            href,
-            re.IGNORECASE
-        )
-
-        if not match:
-            continue
-
-        chapitre = match.group(1).lower()
-        type_document = match.group(2).lower()
-
-        url = urljoin(
-            SOURCE_URL,
-            href
-        )
-
-        programmes.append({
-            "chapitre": chapitre,
-            "type": type_document,
-            "url": url
-        })
-
-        print(
-            "Trouvé :",
-            chapitre,
-            type_document,
-            url
-        )
-
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    JSON_FILE.write_text(
-        json.dumps(
-            {
-                "source": SOURCE_URL,
-                "programmes": programmes
-            },
-            ensure_ascii=False,
-            indent=4
-        ),
-        encoding="utf-8"
-    )
-
-    print()
-    print(
-        "Nombre de documents trouvés :",
-        len(programmes)
-    )
-
-    print(
-        "JSON créé :",
-        JSON_FILE
-    )
-
-
-if __name__ == "__main__":
-    main()
+          if git diff --cached --quiet; then
+            echo "Aucun changement."
+          else
+            git commit -m "Mise à jour des cours"
+            git push
+          fi
