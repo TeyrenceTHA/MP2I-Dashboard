@@ -68,7 +68,6 @@ def main():
             else "Programme"
         )
 
-        # Utilise le vrai nom du PDF fourni par le site
         filename = Path(url).name
 
         pdf_path = PDF_DIR / filename
@@ -94,7 +93,6 @@ def main():
                 "fichier": f"pdf/{filename}",
                 "source": url
             })
-
             print("Téléchargé :", pdf_path)
 
         except Exception as error:
