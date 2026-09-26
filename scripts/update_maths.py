@@ -68,22 +68,10 @@ def main():
             else "Programme"
         )
 
-        # Cherche le numéro de colle dans le texte autour du lien
-            colle_match = re.search(
-                r"colle\s*n[°º]?\s*(\d+)",
-                parent_text,
-                re.IGNORECASE
-            )
+        # Utilise le vrai nom du PDF fourni par le site
+        filename = Path(url).name
 
-            if not colle_match:
-                print("Numéro de colle introuvable :", parent_text)
-                continue
-
-            numero = int(colle_match.group(1))
-
-            filename = f"colle{numero:02d}.pdf"
-
-            pdf_path = PDF_DIR / filename
+        pdf_path = PDF_DIR / filename
 
         try:
             pdf_response = requests.get(
@@ -101,12 +89,12 @@ def main():
             pdf_path.write_bytes(pdf_response.content)
 
             programmes.append({
-                "numero": numero,
                 "semaine": week,
                 "titre": text,
                 "fichier": f"pdf/{filename}",
                 "source": url
             })
+
             print("Téléchargé :", pdf_path)
 
         except Exception as error:
