@@ -178,7 +178,7 @@ def main():
 
         try:
 
-             pdf = session.get(
+            pdf = session.get(
                 url,
                 headers=headers,
                 auth=HTTPDigestAuth(
