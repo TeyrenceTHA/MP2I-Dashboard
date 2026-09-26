@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
+from requests.auth import HTTPDigestAuth
 from bs4 import BeautifulSoup
 
 
@@ -177,10 +178,10 @@ def main():
 
         try:
 
-            pdf = session.get(
+             pdf = session.get(
                 url,
                 headers=headers,
-                auth=(
+                auth=HTTPDigestAuth(
                     PDF_ID,
                     PASSWORD
                 ),
