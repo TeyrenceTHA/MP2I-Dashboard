@@ -221,6 +221,11 @@ def main():
                 "url": f"pdf/{filename}"
             })
 
+            print(
+                "Ajouté au JSON :",
+                filename
+            )
+
         except Exception as error:
 
             print(
