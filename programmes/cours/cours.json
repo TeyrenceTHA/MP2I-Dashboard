@@ -1,4 +1,70 @@
 {
     "source": "https://maths-cpge.fr/chapitres/",
-    "programmes": []
+    "programmes": [
+        {
+            "chapitre": "ch00",
+            "type": "cours",
+            "url": "pdf/ch00-cours.pdf"
+        },
+        {
+            "chapitre": "ch01",
+            "type": "cours",
+            "url": "pdf/ch01-cours.pdf"
+        },
+        {
+            "chapitre": "ch01",
+            "type": "td",
+            "url": "pdf/ch01-td.pdf"
+        },
+        {
+            "chapitre": "ch02",
+            "type": "cours",
+            "url": "pdf/ch02-cours.pdf"
+        },
+        {
+            "chapitre": "ch02",
+            "type": "td",
+            "url": "pdf/ch02-td.pdf"
+        },
+        {
+            "chapitre": "ch03",
+            "type": "cours",
+            "url": "pdf/ch03-cours.pdf"
+        },
+        {
+            "chapitre": "ch03",
+            "type": "td",
+            "url": "pdf/ch03-td.pdf"
+        },
+        {
+            "chapitre": "ch04",
+            "type": "cours",
+            "url": "pdf/ch04-cours.pdf"
+        },
+        {
+            "chapitre": "ch04",
+            "type": "td",
+            "url": "pdf/ch04-td.pdf"
+        },
+        {
+            "chapitre": "ch05",
+            "type": "cours",
+            "url": "pdf/ch05-cours.pdf"
+        },
+        {
+            "chapitre": "ch05",
+            "type": "td",
+            "url": "pdf/ch05-td.pdf"
+        },
+        {
+            "chapitre": "ch06",
+            "type": "cours",
+            "url": "pdf/ch06-cours.pdf"
+        },
+        {
+            "chapitre": "ch06",
+            "type": "td",
+            "url": "pdf/ch06-td.pdf"
+        }
+    ]
 }
