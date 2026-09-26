@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MP2I Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">M</div>
+            <div>
+                <strong>MP2I</strong>
+                <span>Dashboard</span>
+            </div>
+        </div>
+
+        <nav>
+            <a class="active" href="#">
+                <span>⌂</span>
+                Accueil
+            </a>
+
+            <a href="kholles.html">
+                <span>◈</span>
+                Khôlles
+            </a>
+
+            <a href="revisions.html">
+                <span>◫</span>
+                Révisions
+            </a>
+
+            <a href="cours.html">
+                <span>▣</span>
+                Cours
+            </a>
+
+            <a href="ds.html">
+                <span>▤</span>
+                DS
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+        <a href="#" id="settingsButton">
+            <span>⚙</span>
+            Paramètres
+        </a>
+    </div>
+
+    </aside>
+
+
+    <main>
+
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">ESPACE PERSONNEL</p>
+                <h1>Mon espace MP2I</h1>
+            </div>
+
+            <div class="profile">
+                <div class="avatar">D</div>
+                <span>Dieu</span>
+            </div>
+        </header>
+
+
+        <section class="welcome glass">
+            <div>
+                <p class="eyebrow">TABLEAU DE BORD</p>
+                <h2>Bienvenue dans ton espace de travail.</h2>
+                <p class="muted">
+                    Retrouve ici tes khôlles, cours, révisions et DS.
+                </p>
+            </div>
+
+            <div class="status">
+                <span></span>
+                MP2I
+            </div>
+        </section>
+
+
+            <section class="grid">
+
+                <a href="kholle.html" class="dashboard-card glass">
+                    <div class="card-icon">◈</div>
+
+                    <div>
+                        <h3>Khôlles</h3>
+                        <p>Programmes, dates et notions à maîtriser.</p>
+                    </div>
+
+                    <span class="arrow">→</span>
+                </a>
+
+
+                <a href="revisions.html" class="dashboard-card glass">
+                    <div class="card-icon">◫</div>
+
+                    <div>
+                        <h3>Révisions</h3>
+                        <p>Fiches, formules et notions importantes.</p>
+                    </div>
+
+                    <span class="arrow">→</span>
+                </a>
+
+
+                <a href="cours.html" class="dashboard-card glass">
+                    <div class="card-icon">▣</div>
+
+                    <div>
+                        <h3>Cours</h3>
+                        <p>Retrouve tes cours classés par matière.</p>
+                    </div>
+
+                    <span class="arrow">→</span>
+                </a>
+
+
+                <a href="ds.html" class="dashboard-card glass">
+                    <div class="card-icon">▤</div>
+
+                    <div>
+                        <h3>DS</h3>
+                        <p>Sujets, corrections et préparation.</p>
+                    </div>
+
+                    <span class="arrow">→</span>
+                </a>
+
+            </section>
+<div id="themePanel" class="theme-panel glass">
+
+    <p class="eyebrow">APPARENCE</p>
+
+    <h3>Thème</h3>
+
+    <div class="theme-buttons">
+
+        <button onclick="setTheme('purple')">
+            <span class="theme-dot purple"></span>
+            Violet
+        </button>
+
+        <button onclick="setTheme('red')">
+            <span class="theme-dot red"></span>
+            Rouge
+        </button>
+
+        <button onclick="setTheme('green')">
+            <span class="theme-dot green"></span>
+            Vert
+        </button>
+
+    </div>
+
+</div>
+        <footer>
+            MP2I Dashboard · 2026
+        </footer>
+
+    </main>
+    
+    <script src="script.js"></script>
+
+</body>
+</html>
