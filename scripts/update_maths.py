@@ -56,19 +56,19 @@ def main():
 
         parent_text = link.parent.get_text(" ", strip=True)
 
-        week_match = re.search(
-            r"\bS\d+\b",
-            parent_text,
+        filename = Path(url).name
+
+        colle_match = re.search(
+            r"colle(\d+)",
+            filename,
             re.IGNORECASE
         )
 
-        week = (
-            week_match.group(0).upper()
-            if week_match
-            else "Programme"
-        )
-
-        filename = Path(url).name
+        if colle_match:
+            numero = int(colle_match.group(1))
+            week = f"Colle {numero}"
+        else:
+            week = "Programme"
 
         pdf_path = PDF_DIR / filename
 
