@@ -1,0 +1,23 @@
+{
+    "source": "https://maths-cpge.fr/colles/",
+    "programmes": [
+        {
+            "semaine": "Programme",
+            "titre": "Programme détaillé",
+            "fichier": "pdf/programme.pdf",
+            "source": "https://maths-cpge.fr/docs/colles/colle03.pdf"
+        },
+        {
+            "semaine": "Programme",
+            "titre": "Programme détaillé",
+            "fichier": "pdf/programme.pdf",
+            "source": "https://maths-cpge.fr/docs/colles/colle02.pdf"
+        },
+        {
+            "semaine": "Programme",
+            "titre": "Programme détaillé",
+            "fichier": "pdf/programme.pdf",
+            "source": "https://maths-cpge.fr/docs/colles/colle01.pdf"
+        }
+    ]
+}
