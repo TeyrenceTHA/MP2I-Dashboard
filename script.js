@@ -614,3 +614,20 @@ if ("serviceWorker" in navigator) {
     });
 
 }
+const mobileSettingsButton =
+    document.getElementById("mobileSettingsButton");
+
+if (mobileSettingsButton && themePanel) {
+
+    mobileSettingsButton.addEventListener(
+        "click",
+        function(event) {
+
+            event.preventDefault();
+
+            themePanel.classList.toggle("show");
+
+        }
+    );
+
+}
