@@ -1,5 +1,5 @@
 // ========================================
-// ACTIVITÉ MP2I
+// ACTIVITÉ MP2I — VERSION OPTIMISÉE
 // ========================================
 
 const ACTIVITY_KEY = "mp2i-activity";
@@ -9,78 +9,93 @@ const ACTIVITY_KEY = "mp2i-activity";
 // DONNÉES
 // ========================================
 
-function getActivityData() {
-
-    const saved =
-        localStorage.getItem(ACTIVITY_KEY);
-
-    if (saved) {
-
-        try {
-            return JSON.parse(saved);
-        }
-
-        catch (error) {
-            console.error(
-                "Erreur données activité :",
-                error
-            );
-        }
-
-    }
-
-
+function createEmptyData() {
     return {
         days: {},
         documents: [],
         totalSeconds: 0
     };
+}
 
+function loadActivity() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(ACTIVITY_KEY);
+
+        if (!saved) {
+            return createEmptyData();
+        }
+
+        const data = JSON.parse(saved);
+
+        return {
+            days: data.days || {},
+            documents: Array.isArray(data.documents)
+                ? data.documents
+                : [],
+            totalSeconds:
+                Number(data.totalSeconds) || 0
+        };
+
+    } catch (error) {
+
+        console.error(
+            "Erreur données activité :",
+            error
+        );
+
+        return createEmptyData();
+    }
 }
 
 
-let activityData =
-    getActivityData();
+let activityData = loadActivity();
 
+
+// ========================================
+// SAUVEGARDE
+// ========================================
+
+let saveTimeout = null;
 
 function saveActivity() {
 
-    localStorage.setItem(
-        ACTIVITY_KEY,
-        JSON.stringify(activityData)
-    );
+    clearTimeout(saveTimeout);
+
+    saveTimeout = setTimeout(() => {
+
+        localStorage.setItem(
+            ACTIVITY_KEY,
+            JSON.stringify(activityData)
+        );
+
+    }, 100);
 
 }
 
 
 // ========================================
-// DATE DU JOUR
+// DATE
 // ========================================
 
-function getToday() {
-
-    const now = new Date();
+function getDateKey(date = new Date()) {
 
     return (
-        now.getFullYear() +
+        date.getFullYear() +
         "-" +
-        String(now.getMonth() + 1).padStart(2, "0") +
+        String(date.getMonth() + 1).padStart(2, "0") +
         "-" +
-        String(now.getDate()).padStart(2, "0")
+        String(date.getDate()).padStart(2, "0")
     );
 
 }
 
 
-// ========================================
-// ENREGISTRER UNE ACTIVITÉ
-// ========================================
+function getTodayData() {
 
-function registerActivity() {
-
-    const today =
-        getToday();
-
+    const today = getDateKey();
 
     if (!activityData.days[today]) {
 
@@ -91,14 +106,111 @@ function registerActivity() {
 
     }
 
-
-    saveActivity();
+    return activityData.days[today];
 
 }
 
 
 // ========================================
-// DOCUMENT CONSULTÉ
+// TIMER
+// ========================================
+
+let lastTimestamp = Date.now();
+
+let timerRunning =
+    document.visibilityState === "visible";
+
+
+function updateTimer() {
+
+    if (!timerRunning) {
+
+        lastTimestamp = Date.now();
+
+        return;
+    }
+
+
+    const now = Date.now();
+
+    const elapsed =
+        (now - lastTimestamp) / 1000;
+
+
+    // Protection contre les gros sauts
+    if (
+        elapsed > 0 &&
+        elapsed < 120
+    ) {
+
+        activityData.totalSeconds += elapsed;
+
+        const today =
+            getTodayData();
+
+        today.minutes +=
+            elapsed / 60;
+
+        saveActivity();
+
+    }
+
+
+    lastTimestamp = now;
+
+}
+
+
+// Mise à jour toutes les secondes
+setInterval(updateTimer, 1000);
+
+
+// ========================================
+// VISIBILITÉ DE L'ONGLET
+// ========================================
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.visibilityState ===
+            "visible"
+        ) {
+
+            timerRunning = true;
+
+            lastTimestamp = Date.now();
+
+            getTodayData();
+
+            saveActivity();
+
+        } else {
+
+            updateTimer();
+
+            timerRunning = false;
+
+            saveActivity();
+
+        }
+
+    }
+);
+
+
+// ========================================
+// ACTIVITÉ INITIALE
+// ========================================
+
+getTodayData();
+
+saveActivity();
+
+
+// ========================================
+// DOCUMENTS
 // ========================================
 
 function registerDocument(url) {
@@ -106,14 +218,16 @@ function registerDocument(url) {
     if (!url) return;
 
 
+    // Déjà enregistré
     if (
         activityData.documents.includes(url)
     ) {
 
-        registerActivity();
+        getTodayData();
+
+        saveActivity();
 
         return;
-
     }
 
 
@@ -121,144 +235,27 @@ function registerDocument(url) {
 
 
     const today =
-        getToday();
+        getTodayData();
 
 
-    if (!activityData.days[today]) {
-
-        activityData.days[today] = {
-            minutes: 0,
-            documents: 0
-        };
-
-    }
-
-
-    activityData.days[today].documents++;
+    today.documents++;
 
 
     saveActivity();
 
-}
-
-
-// ========================================
-// TEMPS DE TRAVAIL
-// ========================================
-
-let lastActivityTime =
-    Date.now();
-
-
-function updateWorkTime() {
-
-    if (
-        document.visibilityState !==
-        "visible"
-    ) {
-        return;
-    }
-
-
-    const now =
-        Date.now();
-
-
-    const elapsed =
-        Math.floor(
-            (now - lastActivityTime) / 1000
-        );
-
-
-    // Évite les énormes écarts
-    // si l'ordinateur est mis en veille.
-    if (
-        elapsed > 0 &&
-        elapsed <= 90
-    ) {
-
-        activityData.totalSeconds +=
-            elapsed;
-
-
-        const today =
-            getToday();
-
-
-        if (!activityData.days[today]) {
-
-            activityData.days[today] = {
-                minutes: 0,
-                documents: 0
-            };
-
-        }
-
-
-        activityData.days[today].minutes +=
-            elapsed / 60;
-
-
-        saveActivity();
-
-    }
-
-
-    lastActivityTime =
-        now;
+    updateActivityDashboard();
 
 }
 
 
-setInterval(
-    updateWorkTime,
-    60000
-);
-
-
-document.addEventListener(
-    "visibilitychange",
-    function() {
-
-        if (
-            document.visibilityState ===
-            "visible"
-        ) {
-
-            lastActivityTime =
-                Date.now();
-
-            registerActivity();
-
-        }
-
-        else {
-
-            updateWorkTime();
-
-        }
-
-    }
-);
-
-
-// ========================================
-// ACTIVITÉ AU CHARGEMENT
-// ========================================
-
-registerActivity();
-
-
-// ========================================
-// DÉTECTER LES DOCUMENTS OUVERTS
-// ========================================
-
+// Détecte les clics sur les documents
 document.addEventListener(
     "click",
-    function(event) {
+    event => {
 
         const link =
             event.target.closest("a");
+
 
         if (!link) return;
 
@@ -268,10 +265,8 @@ document.addEventListener(
 
 
         const isDocument =
-            href.includes(".pdf") ||
-            href.includes(
-                "notebook.google.com"
-            );
+            href.toLowerCase().includes(".pdf") ||
+            href.includes("notebook.google.com");
 
 
         if (isDocument) {
@@ -285,30 +280,20 @@ document.addEventListener(
 
 
 // ========================================
-// CALCUL DU STREAK
+// STREAK
 // ========================================
 
 function calculateStreak() {
 
     let streak = 0;
 
-
-    const date =
-        new Date();
+    const date = new Date();
 
 
     while (true) {
 
         const key =
-            date.getFullYear() +
-            "-" +
-            String(
-                date.getMonth() + 1
-            ).padStart(2, "0") +
-            "-" +
-            String(
-                date.getDate()
-            ).padStart(2, "0");
+            getDateKey(date);
 
 
         const day =
@@ -322,7 +307,9 @@ function calculateStreak() {
                 day.documents <= 0
             )
         ) {
+
             break;
+
         }
 
 
@@ -362,10 +349,17 @@ function calculateActiveDays() {
 
 
 // ========================================
-// TEMPS FORMATÉ
+// FORMATAGE DU TEMPS
 // ========================================
 
 function formatTime(seconds) {
+
+    seconds =
+        Math.max(
+            0,
+            Math.floor(seconds)
+        );
+
 
     const hours =
         Math.floor(
@@ -379,24 +373,41 @@ function formatTime(seconds) {
         );
 
 
+    const secs =
+        seconds % 60;
+
+
     if (hours > 0) {
 
         return (
             hours +
             "h " +
-            String(minutes).padStart(2, "0")
+            String(minutes).padStart(2, "0") +
+            " min"
         );
 
     }
 
 
-    return minutes + " min";
+    if (minutes > 0) {
+
+        return (
+            minutes +
+            " min " +
+            String(secs).padStart(2, "0") +
+            " s"
+        );
+
+    }
+
+
+    return secs + " s";
 
 }
 
 
 // ========================================
-// INTENSITÉ D'UNE JOURNÉE
+// INTENSITÉ HEATMAP
 // ========================================
 
 function getIntensity(day) {
@@ -405,11 +416,11 @@ function getIntensity(day) {
 
 
     const minutes =
-        day.minutes || 0;
+        Number(day.minutes) || 0;
 
 
     const documents =
-        day.documents || 0;
+        Number(day.documents) || 0;
 
 
     const score =
@@ -452,10 +463,7 @@ function generateHeatmap() {
         new Date();
 
 
-    // 365 derniers jours
-    const days = [];
-
-
+    // 365 jours
     for (
         let i = 364;
         i >= 0;
@@ -472,41 +480,19 @@ function generateHeatmap() {
 
 
         const key =
-            date.getFullYear() +
-            "-" +
-            String(
-                date.getMonth() + 1
-            ).padStart(2, "0") +
-            "-" +
-            String(
-                date.getDate()
-            ).padStart(2, "0");
-
-
-        days.push({
-            date,
-            key
-        });
-
-    }
-
-
-    days.forEach(item => {
-
-        const cell =
-            document.createElement(
-                "div"
-            );
+            getDateKey(date);
 
 
         const day =
-            activityData.days[
-                item.key
-            ];
+            activityData.days[key];
 
 
         const intensity =
             getIntensity(day);
+
+
+        const cell =
+            document.createElement("div");
 
 
         cell.className =
@@ -515,7 +501,7 @@ function generateHeatmap() {
 
 
         const minutes =
-            Math.round(
+            Math.floor(
                 day?.minutes || 0
             );
 
@@ -525,7 +511,7 @@ function generateHeatmap() {
 
 
         cell.title =
-            item.key +
+            key +
             " · " +
             minutes +
             " min · " +
@@ -538,17 +524,15 @@ function generateHeatmap() {
             );
 
 
-        heatmap.appendChild(
-            cell
-        );
+        heatmap.appendChild(cell);
 
-    });
+    }
 
 }
 
 
 // ========================================
-// AFFICHAGE DU DASHBOARD
+// DASHBOARD
 // ========================================
 
 function updateActivityDashboard() {
@@ -598,9 +582,7 @@ function updateActivityDashboard() {
 
         timeElement.textContent =
             formatTime(
-                Math.round(
-                    activityData.totalSeconds
-                )
+                activityData.totalSeconds
             );
 
     }
@@ -620,13 +602,36 @@ function updateActivityDashboard() {
 
 
 // ========================================
-// MISE À JOUR
+// MISE À JOUR LIVE
 // ========================================
 
+setInterval(() => {
+
+    updateTimer();
+
+    updateActivityDashboard();
+
+}, 1000);
+
+
+// Première initialisation
 updateActivityDashboard();
 
 
-setInterval(
-    updateActivityDashboard,
-    60000
+// ========================================
+// SAUVEGARDE AVANT FERMETURE
+// ========================================
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        updateTimer();
+
+        localStorage.setItem(
+            ACTIVITY_KEY,
+            JSON.stringify(activityData)
+        );
+
+    }
 );
