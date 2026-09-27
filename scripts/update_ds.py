@@ -40,6 +40,18 @@ soup = BeautifulSoup(
     response.text,
     "html.parser"
 )
+print("=== RECHERCHE PDF DANS LE HTML ===")
+
+pdf_matches = re.findall(
+    r'[^"\']+\.pdf',
+    response.text,
+    re.IGNORECASE
+)
+
+for match in pdf_matches:
+    print("PDF TROUVÉ :", match)
+
+print("Nombre de PDF :", len(pdf_matches))
 print("Nombre de liens :", len(soup.find_all("a")))
 
 for link in soup.find_all("a", href=True):
