@@ -1,3 +1,89 @@
 {
-  "programmes": []
+  "programmes": [
+    {
+      "chapitre": "ch00",
+      "type": "cours",
+      "url": "ch00-cours.pdf"
+    },
+    {
+      "chapitre": "ch01",
+      "type": "cours",
+      "url": "ch01-cours.pdf"
+    },
+    {
+      "chapitre": "ch01",
+      "type": "td",
+      "url": "ch01-td.pdf"
+    },
+    {
+      "chapitre": "ch01",
+      "type": "correction",
+      "url": "ch01-td-correction.pdf"
+    },
+    {
+      "chapitre": "ch02",
+      "type": "cours",
+      "url": "ch02-cours.pdf"
+    },
+    {
+      "chapitre": "ch02",
+      "type": "td",
+      "url": "ch02-td.pdf"
+    },
+    {
+      "chapitre": "ch02",
+      "type": "correction",
+      "url": "ch02-td-correction.pdf"
+    },
+    {
+      "chapitre": "ch03",
+      "type": "cours",
+      "url": "ch03-cours.pdf"
+    },
+    {
+      "chapitre": "ch03",
+      "type": "td",
+      "url": "ch03-td.pdf"
+    },
+    {
+      "chapitre": "ch04",
+      "type": "cours",
+      "url": "ch04-cours.pdf"
+    },
+    {
+      "chapitre": "ch04",
+      "type": "td",
+      "url": "ch04-td.pdf"
+    },
+    {
+      "chapitre": "ch04",
+      "type": "correction",
+      "url": "ch04-td-correction.pdf"
+    },
+    {
+      "chapitre": "ch05",
+      "type": "cours",
+      "url": "ch05-cours.pdf"
+    },
+    {
+      "chapitre": "ch05",
+      "type": "td",
+      "url": "ch05-td.pdf"
+    },
+    {
+      "chapitre": "ch05",
+      "type": "correction",
+      "url": "ch05-td-correction.pdf"
+    },
+    {
+      "chapitre": "ch06",
+      "type": "cours",
+      "url": "ch06-cours.pdf"
+    },
+    {
+      "chapitre": "ch06",
+      "type": "td",
+      "url": "ch06-td.pdf"
+    }
+  ]
 }
