@@ -2,6 +2,7 @@ import os
 import json
 import re
 from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -24,74 +25,70 @@ PDF_DIR.mkdir(parents=True, exist_ok=True)
 
 session = requests.Session()
 
+response = session.get(
+    PAGE_URL,
+    timeout=30
+)
 
-# ================================
-# RÉCUPÉRER LA PAGE
-# ================================
-
-response = session.get(PAGE_URL, timeout=30)
+print("Page HTTP :", response.status_code)
 
 response.raise_for_status()
 
-soup = BeautifulSoup(response.text, "html.parser")
+print("Taille de la page :", len(response.text))
 
+soup = BeautifulSoup(
+    response.text,
+    "html.parser"
+)
 
-# ================================
-# TROUVER LES PDF
-# ================================
 
 documents = []
 
 
 for link in soup.find_all("a", href=True):
 
-    href = link["href"]
+    href = link["href"].strip()
 
-    if "/docs/devoirs/" not in href:
-        continue
-
-    if not href.lower().endswith(".pdf"):
-        continue
-
-    url = (
-        href
-        if href.startswith("http")
-        else BASE_URL + href
-    )
-
-    filename = Path(url).name
-
-    # Évite les doublons
-    if any(doc["fichier"] == filename for doc in documents):
-        continue
-
-    # Exemple : dm02-sujet.pdf
+    # On cherche directement les fichiers DM/DS
     match = re.search(
-        r"(dm|ds)(\d+)",
-        filename,
+        r"(dm|ds)(\d+)[^/]*\.pdf",
+        href,
         re.IGNORECASE
     )
 
-    if match:
+    if not match:
+        continue
 
-        type_devoir = match.group(1).upper()
-        numero = int(match.group(2))
 
-        titre = f"{type_devoir}{numero}"
+    type_devoir = match.group(1).upper()
+    numero = int(match.group(2))
 
-    else:
+    filename = Path(href).name
 
-        titre = filename.replace(".pdf", "")
+
+    if filename in [
+        document["fichier"]
+        for document in documents
+    ]:
+        continue
+
+
+    url = urljoin(
+        BASE_URL,
+        href
+    )
+
+
+    titre = f"{type_devoir}{numero}"
 
 
     local_path = PDF_DIR / filename
 
 
-    # ================================
-    # TÉLÉCHARGEMENT
-    # ================================
+    print()
+    print("Trouvé :", filename)
+    print("URL :", url)
 
-    print("Téléchargement :", filename)
 
     pdf = session.get(
         url,
@@ -102,36 +99,38 @@ for link in soup.find_all("a", href=True):
         timeout=30
     )
 
-    print("Réponse HTTP :", pdf.status_code)
+
+    print(
+        "Réponse PDF :",
+        pdf.status_code
+    )
+
 
     pdf.raise_for_status()
 
-    local_path.write_bytes(pdf.content)
 
-    print("Enregistré :", local_path)
+    local_path.write_bytes(
+        pdf.content
+    )
+
+
+    print(
+        "Enregistré :",
+        local_path
+    )
 
 
     documents.append({
-
         "titre": titre,
-
+        "type": type_devoir,
         "fichier": f"pdf/{filename}",
-
         "source": url
-
     })
 
 
-# ================================
-# JSON
-# ================================
-
 data = {
-
     "source": PAGE_URL,
-
     "devoirs": documents
-
 }
 
 
