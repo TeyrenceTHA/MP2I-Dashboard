@@ -25,14 +25,24 @@ PDF_DIR.mkdir(parents=True, exist_ok=True)
 
 session = requests.Session()
 
+session = requests.Session()
+
+headers = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/130.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"
+}
+
 response = session.get(
     PAGE_URL,
-    auth=HTTPDigestAuth(
-        PDF_ID,
-        PASSWORD
-    ),
+    headers=headers,
     timeout=30
 )
+
+response.raise_for_status()
 print("Page HTTP :", response.status_code)
 
 response.raise_for_status()
