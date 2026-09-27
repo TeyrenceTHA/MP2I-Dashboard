@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>À revoir — MP2I</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<aside class="sidebar">
+
+    <div class="logo">
+
+        <div class="logo-icon">
+            M
+        </div>
+
+        <div>
+            <strong>MP2I</strong>
+            <span>Dashboard</span>
+        </div>
+
+    </div>
+
+
+    <nav>
+
+        <a href="index.html">
+            <span>⌂</span>
+            Accueil
+        </a>
+
+        <a href="kholle.html">
+            <span>◈</span>
+            Khôlles
+        </a>
+
+        <a class="active" href="revoir.html">
+            <span>!</span>
+            À revoir
+        </a>
+
+        <a href="revisions.html">
+            <span>◫</span>
+            Révisions
+        </a>
+
+        <a href="cours.html">
+            <span>▣</span>
+            Cours
+        </a>
+
+        <a href="ds.html">
+            <span>▤</span>
+            DS
+        </a>
+
+    </nav>
+
+
+    <div class="sidebar-bottom">
+
+        <a href="#" id="settingsButton">
+            <span>⚙</span>
+            Paramètres
+        </a>
+
+    </div>
+
+</aside>
+
+
+<main>
+
+    <header class="topbar">
+
+        <div>
+
+            <p class="eyebrow">
+                RÉVISIONS
+            </p>
+
+            <h1>
+                À revoir
+            </h1>
+
+        </div>
+
+
+        <div class="profile">
+
+            <div class="avatar">
+                Y
+            </div>
+
+            <span>
+                You
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <section class="welcome glass">
+
+        <div>
+
+            <p class="eyebrow">
+                PROGRESSION
+            </p>
+
+            <h2>
+                Les notions à retravailler.
+            </h2>
+
+            <p class="muted">
+                Ajoute ici les notions que tu veux revoir
+                régulièrement.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <div class="section-header">
+
+        <div>
+
+            <p class="eyebrow">
+                NOTIONS
+            </p>
+
+            <h2>
+                Ma liste
+            </h2>
+
+        </div>
+
+
+        <button
+            class="mini-button"
+            id="addRevision"
+        >
+            + Ajouter
+        </button>
+
+    </div>
+
+
+    <section
+        id="revisionList"
+        class="revision-list"
+    ></section>
+
+
+    <div
+        id="themePanel"
+        class="theme-panel glass"
+    >
+
+        <p class="eyebrow">
+            APPARENCE
+        </p>
+
+        <h3>
+            Thème
+        </h3>
+
+
+        <div class="theme-buttons">
+
+            <button onclick="setTheme('purple')">
+                <span class="theme-dot purple"></span>
+                Violet
+            </button>
+
+            <button onclick="setTheme('red')">
+                <span class="theme-dot red"></span>
+                Rouge
+            </button>
+
+            <button onclick="setTheme('green')">
+                <span class="theme-dot green"></span>
+                Vert
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <footer>
+        MP2I Dashboard · 2026
+    </footer>
+
+</main>
+
+
+<script src="script.js"></script>
+
+
+<script>
+
+// ================================
+// STOCKAGE
+// ================================
+
+const storageKey =
+    "mp2i-revisions";
+
+
+let revisions =
+    JSON.parse(
+        localStorage.getItem(storageKey)
+    ) || [];
+
+
+// ================================
+// SAUVEGARDER
+// ================================
+
+function saveRevisions() {
+
+    localStorage.setItem(
+        storageKey,
+        JSON.stringify(revisions)
+    );
+
+}
+
+
+// ================================
+// AFFICHER
+// ================================
+
+function displayRevisions() {
+
+    const list =
+        document.getElementById(
+            "revisionList"
+        );
+
+
+    list.innerHTML = "";
+
+
+    if (revisions.length === 0) {
+
+        list.innerHTML = `
+
+            <div class="loading-card glass">
+
+                Aucune notion à revoir.
+
+                <br><br>
+
+                Utilise
+                <strong>+ Ajouter</strong>
+                pour créer ta première notion.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    revisions.forEach(
+        (revision, index) => {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "revision-card glass";
+
+
+            card.innerHTML = `
+
+                <div class="revision-main">
+
+                    <div class="revision-priority priority-${revision.priority}">
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            ${revision.title}
+                        </h3>
+
+                        <p>
+                            ${revision.subject}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="revision-actions">
+
+                    ${
+                        revision.url
+                        ?
+                        `
+                        <a
+                            href="${revision.url}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="mini-button"
+                        >
+                            Ouvrir →
+                        </a>
+                        `
+                        :
+                        ""
+                    }
+
+
+                    <button
+                        class="mini-button"
+                        onclick="markDone(${index})"
+                    >
+                        ✓ Maîtrisé
+                    </button>
+
+
+                    <button
+                        class="mini-button"
+                        onclick="deleteRevision(${index})"
+                    >
+                        Supprimer
+                    </button>
+
+                </div>
+
+            `;
+
+
+            list.appendChild(card);
+
+        }
+    );
+
+}
+
+
+// ================================
+// AJOUTER
+// ================================
+
+document
+    .getElementById("addRevision")
+    .addEventListener(
+        "click",
+        function() {
+
+            const title =
+                prompt(
+                    "Nom de la notion :"
+                );
+
+
+            if (!title) return;
+
+
+            const subject =
+                prompt(
+                    "Matière :"
+                );
+
+
+            if (!subject) return;
+
+
+            const priority =
+                prompt(
+                    "Priorité :\n\n" +
+                    "1 = Haute\n" +
+                    "2 = Moyenne\n" +
+                    "3 = Faible"
+                ) || "2";
+
+
+            const url =
+                prompt(
+                    "Lien vers le cours ou le notebook (optionnel) :"
+                );
+
+
+            revisions.push({
+
+                title:
+                    title.trim(),
+
+                subject:
+                    subject.trim(),
+
+                priority:
+                    priority.trim(),
+
+                url:
+                    url
+                    ? url.trim()
+                    : ""
+
+            });
+
+
+            saveRevisions();
+
+            displayRevisions();
+
+        }
+    );
+
+
+// ================================
+// MAÎTRISÉ
+// ================================
+
+function markDone(index) {
+
+    revisions.splice(
+        index,
+        1
+    );
+
+
+    saveRevisions();
+
+    displayRevisions();
+
+}
+
+
+// ================================
+// SUPPRIMER
+// ================================
+
+function deleteRevision(index) {
+
+    if (
+        !confirm(
+            "Supprimer cette notion ?"
+        )
+    ) {
+        return;
+    }
+
+
+    revisions.splice(
+        index,
+        1
+    );
+
+
+    saveRevisions();
+
+    displayRevisions();
+
+}
+
+
+// ================================
+// INITIALISATION
+// ================================
+
+displayRevisions();
+
+</script>
+
+</body>
+</html>

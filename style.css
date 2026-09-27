@@ -1062,3 +1062,79 @@ body.theme-green .status span {
         margin-bottom: 5px;
     }
 }
+.revision-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.revision-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 20px;
+    border-radius: 16px;
+}
+
+.revision-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.revision-main h3 {
+    margin: 0 0 5px;
+    font-size: 15px;
+}
+
+.revision-main p {
+    margin: 0;
+    color: #8e94aa;
+    font-size: 12px;
+}
+
+.revision-priority {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.priority-1 {
+    background: #ff4d6d;
+}
+
+.priority-2 {
+    background: #f5b642;
+}
+
+.priority-3 {
+    background: #53d769;
+}
+
+.revision-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+@media screen and (max-width: 700px) {
+
+    .revision-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .revision-actions {
+        flex-wrap: wrap;
+    }
+
+    .revision-actions .mini-button {
+        flex: 1;
+    }
+
+}
