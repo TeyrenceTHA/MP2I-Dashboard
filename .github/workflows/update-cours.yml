@@ -1,8 +1,10 @@
+```yaml
 name: Mise à jour des cours
 
 on:
   schedule:
     - cron: "0 3 * * *"
+
   workflow_dispatch:
 
 permissions:
@@ -10,9 +12,11 @@ permissions:
 
 jobs:
   update-cours:
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
 
@@ -22,18 +26,21 @@ jobs:
           python-version: "3.x"
 
       - name: Installer les dépendances
-        run: pip install requests beautifulsoup4
+        run: |
+          pip install requests beautifulsoup4
 
       - name: Récupérer les cours
         env:
           MATHS_CPGE_ID: ${{ secrets.MATHS_CPGE_ID }}
           MATHS_CPGE_PASSWORD: ${{ secrets.MATHS_CPGE_PASSWORD }}
-        run: python scripts/update_cours.py
+        run: |
+          python scripts/update_cours.py
 
       - name: Enregistrer les changements
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add programmes/cours/
 
           if git diff --cached --quiet; then
@@ -42,3 +49,4 @@ jobs:
             git commit -m "Mise à jour des cours"
             git push
           fi
+```
