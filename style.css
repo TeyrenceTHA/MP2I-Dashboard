@@ -1598,3 +1598,16 @@ body.theme-green
         box-sizing: border-box;
     }
 }
+@media screen and (max-width: 700px) {
+
+    #cours-container .course-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #cours-container .mini-button {
+        flex-shrink: 0;
+    }
+
+}

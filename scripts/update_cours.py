@@ -1,279 +1,291 @@
-import json
 import os
+import json
 import re
-from pathlib import Path
+import requests
+from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-import requests
-from requests.auth import HTTPDigestAuth
-from bs4 import BeautifulSoup
+
+BASE_URL = "https://maths-cpge.fr"
+COURSES_URL = "https://maths-cpge.fr/chapitres/"
+
+OUTPUT_DIR = "programmes/cours"
+OUTPUT_JSON = os.path.join(OUTPUT_DIR, "cours.json")
 
 
-SOURCE_URL = "https://maths-cpge.fr/chapitres/"
-
-OUTPUT_DIR = Path("programmes/cours")
-PDF_DIR = OUTPUT_DIR / "pdf"
-JSON_FILE = OUTPUT_DIR / "cours.json"
-
+USERNAME = os.environ.get("MATHS_CPGE_ID")
 PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
-PDF_ID = os.environ.get("MATHS_CPGE_ID")
 
 
-def main():
-
-    if not PASSWORD:
-        raise RuntimeError(
-            "Le secret MATHS_CPGE_PASSWORD est introuvable."
-        )
-
-    if not PDF_ID:
-        raise RuntimeError(
-            "Le secret MATHS_CPGE_ID est introuvable."
-        )
-
-    session = requests.Session()
-
-    headers = {
-        "User-Agent": "MP2I-Dashboard/1.0"
-    }
-
-    print("Connexion à :", SOURCE_URL)
-
-    # --------------------------------------------------
-    # 1. Déverrouiller la page des chapitres
-    # --------------------------------------------------
-
-    response = session.get(
-        SOURCE_URL,
-        headers=headers,
-        timeout=30
+if not USERNAME or not PASSWORD:
+    raise RuntimeError(
+        "MATHS_CPGE_ID ou MATHS_CPGE_PASSWORD manquant."
     )
 
-    response.raise_for_status()
 
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+session = requests.Session()
+
+
+print("Connexion au site...")
+
+
+login_data = {
+    "log": USERNAME,
+    "pwd": PASSWORD,
+    "wp-submit": "Log In",
+    "redirect_to": COURSES_URL,
+    "testcookie": "1"
+}
+
+
+response = session.post(
+    f"{BASE_URL}/wp-login.php",
+    data=login_data,
+    timeout=30
+)
+
+
+if response.status_code != 200:
+    raise RuntimeError(
+        f"Erreur de connexion : HTTP {response.status_code}"
     )
 
-    form = soup.find("form")
 
-    if not form:
-        raise RuntimeError(
-            "Formulaire de mot de passe introuvable."
-        )
+print("Récupération des chapitres...")
 
-    action = form.get("action") or SOURCE_URL
 
-    action = urljoin(
-        SOURCE_URL,
-        action
+response = session.get(
+    COURSES_URL,
+    timeout=30
+)
+
+response.raise_for_status()
+
+
+soup = BeautifulSoup(
+    response.text,
+    "html.parser"
+)
+
+
+programmes = []
+
+
+def detect_document_type(text):
+    """
+    Détecte le type à partir de noms comme :
+
+    ch04-cours
+    ch04-td
+    ch04-td-correction
+    """
+
+    text = text.lower().strip()
+
+    if "td-correction" in text:
+        return "correction"
+
+    if "td_correction" in text:
+        return "correction"
+
+    if "correction-td" in text:
+        return "correction"
+
+    if "correction_td" in text:
+        return "correction"
+
+    if re.search(r"\btd\b", text):
+        return "td"
+
+    if "cours" in text:
+        return "cours"
+
+    return None
+
+
+def detect_chapter(text):
+    """
+    Extrait ch04, ch12, etc.
+    """
+
+    match = re.search(
+        r"(ch\d+)",
+        text.lower()
     )
 
-    data = {}
+    if match:
+        return match.group(1)
 
-    for input_tag in form.find_all("input"):
+    return None
 
-        name = input_tag.get("name")
 
-        if not name:
-            continue
+links = soup.find_all("a")
 
-        if input_tag.get("type", "text") == "hidden":
-            data[name] = input_tag.get("value", "")
 
-    password_input = form.find(
-        "input",
-        {"type": "password"}
+for link in links:
+
+    href = link.get("href")
+
+    if not href:
+        continue
+
+
+    text = link.get_text(
+        " ",
+        strip=True
     )
 
-    if not password_input:
-        raise RuntimeError(
-            "Champ de mot de passe introuvable."
-        )
 
-    password_name = password_input.get("name")
+    full_text = f"{text} {href}".lower()
 
-    if not password_name:
-        raise RuntimeError(
-            "Nom du champ mot de passe introuvable."
-        )
 
-    data[password_name] = PASSWORD
+    if ".pdf" not in full_text:
+        continue
 
-    print("Envoi du mot de passe...")
 
-    unlocked = session.post(
-        action,
-        data=data,
-        headers=headers,
-        timeout=30
+    chapter = detect_chapter(full_text)
+
+    if not chapter:
+        continue
+
+
+    document_type = detect_document_type(
+        full_text
     )
 
-    unlocked.raise_for_status()
+    if not document_type:
+        continue
 
-    if "Ce contenu est protégé par un mot de passe" in unlocked.text:
-        raise RuntimeError(
-            "Le mot de passe n'a pas permis de déverrouiller la page."
-        )
 
-    print("Page déverrouillée.")
-
-    soup = BeautifulSoup(
-        unlocked.text,
-        "html.parser"
+    pdf_url = urljoin(
+        BASE_URL,
+        href
     )
 
-    # --------------------------------------------------
-    # 2. Préparer les dossiers
-    # --------------------------------------------------
 
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
+    filename = os.path.basename(
+        pdf_url.split("?")[0]
     )
 
-    PDF_DIR.mkdir(
-        parents=True,
-        exist_ok=True
+
+    output_path = os.path.join(
+        OUTPUT_DIR,
+        filename
     )
 
-    programmes = []
-
-    # --------------------------------------------------
-    # 3. Trouver les PDF
-    # --------------------------------------------------
-
-    for link in soup.find_all("a", href=True):
-
-        href = link["href"]
-
-        match = re.search(
-            r"/docs/chapitres/(ch\d+)-(cours|td)\.pdf",
-            href,
-            re.IGNORECASE
-        )
-
-        if not match:
-            continue
-
-        chapitre = match.group(1).lower()
-        type_document = match.group(2).lower()
-
-        url = urljoin(
-            SOURCE_URL,
-            href
-        )
-
-        filename = Path(href).name
-
-        local_path = PDF_DIR / filename
-
-        print()
-        print("Téléchargement :", filename)
-
-        # --------------------------------------------------
-        # 4. Télécharger avec ID + mot de passe
-        # --------------------------------------------------
-
-        try:
-
-            pdf = session.get(
-                url,
-                headers=headers,
-                auth=HTTPDigestAuth(
-                    PDF_ID,
-                    PASSWORD
-                ),
-                timeout=30
-            )
-
-            print(
-                "Réponse HTTP :",
-                pdf.status_code
-            )
-
-            print(
-                "WWW-Authenticate :",
-                pdf.headers.get("WWW-Authenticate")
-            )
-
-            pdf.raise_for_status()
-
-            if not pdf.content.startswith(b"%PDF"):
-                print(
-                    "Erreur : le fichier reçu n'est pas un PDF."
-                )
-                continue
-
-            local_path.write_bytes(
-                pdf.content
-            )
-
-            print(
-                "Enregistré :",
-                local_path
-            )
-
-            programmes.append({
-                "chapitre": chapitre,
-                "type": type_document,
-                "url": f"pdf/{filename}"
-            })
-
-            print(
-                "Ajouté au JSON :",
-                filename
-            )
-
-        except Exception as error:
-
-            print(
-                "Erreur pour",
-                filename,
-                ":",
-                error
-            )
-
-    # --------------------------------------------------
-    # 5. Créer cours.json
-    # --------------------------------------------------
-
-    programmes.sort(
-        key=lambda x: (
-            int(
-                re.search(
-                    r"\d+",
-                    x["chapitre"]
-                ).group()
-            ),
-            x["type"]
-        )
-    )
-
-    JSON_FILE.write_text(
-        json.dumps(
-            {
-                "source": SOURCE_URL,
-                "programmes": programmes
-            },
-            ensure_ascii=False,
-            indent=4
-        ),
-        encoding="utf-8"
-    )
-
-    print()
-    print(
-        "Nombre de documents téléchargés :",
-        len(programmes)
-    )
 
     print(
-        "JSON créé :",
-        JSON_FILE
+        f"[{chapter}] "
+        f"{document_type} : "
+        f"{filename}"
     )
 
 
-if __name__ == "__main__":
-    main()
+    try:
+
+        pdf_response = session.get(
+            pdf_url,
+            timeout=60
+        )
+
+        pdf_response.raise_for_status()
+
+
+        with open(
+            output_path,
+            "wb"
+        ) as file:
+
+            file.write(
+                pdf_response.content
+            )
+
+
+        programmes.append({
+            "chapitre": chapter,
+            "type": document_type,
+            "url": filename
+        })
+
+
+        print("  -> téléchargé")
+
+
+    except Exception as error:
+
+        print(
+            f"  -> erreur : {error}"
+        )
+
+
+# Supprime les doublons
+unique_programmes = []
+
+
+seen = set()
+
+
+for item in programmes:
+
+    key = (
+        item["chapitre"],
+        item["type"]
+    )
+
+    if key in seen:
+        continue
+
+    seen.add(key)
+
+    unique_programmes.append(item)
+
+
+# Tri par chapitre
+def chapter_number(item):
+
+    match = re.search(
+        r"\d+",
+        item["chapitre"]
+    )
+
+    if match:
+        return int(match.group())
+
+    return 9999
+
+
+unique_programmes.sort(
+    key=lambda item: (
+        chapter_number(item),
+        item["type"]
+    )
+)
+
+
+data = {
+    "programmes": unique_programmes
+}
+
+
+with open(
+    OUTPUT_JSON,
+    "w",
+    encoding="utf-8"
+) as file:
+
+    json.dump(
+        data,
+        file,
+        ensure_ascii=False,
+        indent=2
+    )
+
+
+print()
+print(
+    f"{len(unique_programmes)} documents "
+    f"enregistrés dans {OUTPUT_JSON}"
+)
