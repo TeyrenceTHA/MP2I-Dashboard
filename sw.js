@@ -1,4 +1,4 @@
-const CACHE_NAME = "mp2i-v1";
+const CACHE_NAME = "mp2i-v2";
 
 const FILES_TO_CACHE = [
     "./",
@@ -11,58 +11,148 @@ const FILES_TO_CACHE = [
     "./info.html",
     "./cours.html",
     "./ds.html",
+
     "./style.css",
     "./script.js",
-    "./manifest.json"
+    "./activity.js",
+    "./manifest.json",
+
+    "./programmes/cours/cours.json"
 ];
 
-self.addEventListener("install", event => {
 
-    event.waitUntil(
+self.addEventListener(
+    "install",
+    event => {
 
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                return cache.addAll(FILES_TO_CACHE);
-            })
+        event.waitUntil(
 
-    );
+            caches.open(CACHE_NAME)
+                .then(cache => {
 
-});
+                    return cache.addAll(
+                        FILES_TO_CACHE
+                    );
+
+                })
+
+        );
+
+        self.skipWaiting();
+
+    }
+);
 
 
-self.addEventListener("activate", event => {
+self.addEventListener(
+    "activate",
+    event => {
 
-    event.waitUntil(
+        event.waitUntil(
 
-        caches.keys().then(keys => {
+            caches.keys()
+                .then(keys => {
 
-            return Promise.all(
+                    return Promise.all(
 
-                keys
-                    .filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
+                        keys
+                            .filter(
+                                key =>
+                                    key !== CACHE_NAME
+                            )
+                            .map(
+                                key =>
+                                    caches.delete(key)
+                            )
+
+                    );
+
+                })
+
+        );
+
+        self.clients.claim();
+
+    }
+);
+
+
+self.addEventListener(
+    "fetch",
+    event => {
+
+        const request =
+            event.request;
+
+
+        /*
+         * Pour les pages HTML :
+         * toujours essayer le réseau.
+         */
+
+        if (
+            request.mode === "navigate"
+        ) {
+
+            event.respondWith(
+
+                fetch(request)
+                    .then(response => {
+
+                        const copy =
+                            response.clone();
+
+
+                        caches.open(
+                            CACHE_NAME
+                        ).then(cache => {
+
+                            cache.put(
+                                request,
+                                copy
+                            );
+
+                        });
+
+
+                        return response;
+
+                    })
+                    .catch(() => {
+
+                        return caches.match(
+                            request
+                        );
+
+                    })
 
             );
 
-        })
+            return;
 
-    );
-
-});
+        }
 
 
-self.addEventListener("fetch", event => {
+        /*
+         * Pour les autres fichiers :
+         * cache puis réseau.
+         */
 
-    event.respondWith(
+        event.respondWith(
 
-        caches.match(event.request)
-            .then(cached => {
+            caches.match(request)
+                .then(cached => {
 
-                return cached ||
-                    fetch(event.request);
+                    if (cached) {
+                        return cached;
+                    }
 
-            })
 
-    );
+                    return fetch(request);
 
-});
+                })
+
+        );
+
+    }
+);
