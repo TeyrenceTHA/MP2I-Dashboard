@@ -1,38 +1,24 @@
-```python
 import os
 import json
 import requests
-
 from bs4 import BeautifulSoup
 from requests.auth import HTTPDigestAuth
 from urllib.parse import urljoin
 
-
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
 BASE_URL = "https://maths-cpge.fr"
 CHAPITRES_URL = f"{BASE_URL}/chapitres/"
 
-PAGE_PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
+PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
 PDF_ID = os.environ.get("MATHS_CPGE_ID")
-PDF_PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
 
 OUTPUT_DIR = "programmes/cours"
 JSON_FILE = os.path.join(OUTPUT_DIR, "cours.json")
 
-
-if not PAGE_PASSWORD:
-    raise RuntimeError("MATHS_CPGE_PASSWORD est absent.")
+if not PASSWORD:
+    raise RuntimeError("Secret MATHS_CPGE_PASSWORD manquant.")
 
 if not PDF_ID:
-    raise RuntimeError("MATHS_CPGE_ID est absent.")
-
-
-# ============================================================
-# SESSION
-# ============================================================
+    raise RuntimeError("Secret MATHS_CPGE_ID manquant.")
 
 session = requests.Session()
 
@@ -42,73 +28,61 @@ headers = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/154.0.0.0 Safari/537.36"
     ),
-    "Accept": (
-        "text/html,application/xhtml+xml,application/xml;"
-        "q=0.9,image/avif,image/webp,*/*;q=0.8"
-    ),
     "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
 }
 
+print("1. Ouverture de /chapitres/...")
 
-# ============================================================
-# 1. ACCÈS À LA PAGE /CHAPITRES/
-# ============================================================
-
-print("Accès à la page des chapitres...")
-
-response = session.get(
+page = session.get(
     CHAPITRES_URL,
     headers=headers,
     timeout=30
 )
 
-print("HTTP :", response.status_code)
-print("URL :", response.url)
+print("HTTP :", page.status_code)
 
-response.raise_for_status()
+page.raise_for_status()
 
+soup = BeautifulSoup(
+    page.text,
+    "html.parser"
+)
 
-# ============================================================
-# 2. DÉTECTION DU MOT DE PASSE DE PAGE
-# ============================================================
-
-soup = BeautifulSoup(response.text, "html.parser")
-
-password_field = soup.find(
+password_input = soup.find(
     "input",
     attrs={"name": "post_password"}
 )
 
-if password_field:
-    print("Page protégée par mot de passe.")
-    print("Envoi du mot de passe...")
+if password_input:
+    print("2. Page protégée : envoi du mot de passe...")
 
-    password_form = password_field.find_parent("form")
+    form = password_input.find_parent("form")
 
-    if not password_form:
+    if not form:
         raise RuntimeError(
-            "Champ post_password trouvé mais formulaire introuvable."
+            "Formulaire post_password introuvable."
         )
 
-    action = password_form.get("action") or CHAPITRES_URL
-    action = urljoin(CHAPITRES_URL, action)
+    action = urljoin(
+        CHAPITRES_URL,
+        form.get("action") or CHAPITRES_URL
+    )
 
-    password_data = {
-        "post_password": PAGE_PASSWORD
+    data = {
+        "post_password": PASSWORD
     }
 
-    # Certains formulaires WordPress utilisent également redirect_to.
-    redirect_field = password_form.find(
+    redirect = form.find(
         "input",
         attrs={"name": "redirect_to"}
     )
 
-    if redirect_field and redirect_field.get("value"):
-        password_data["redirect_to"] = redirect_field["value"]
+    if redirect and redirect.get("value"):
+        data["redirect_to"] = redirect["value"]
 
-    password_response = session.post(
+    unlocked = session.post(
         action,
-        data=password_data,
+        data=data,
         headers={
             **headers,
             "Referer": CHAPITRES_URL
@@ -117,210 +91,216 @@ if password_field:
         allow_redirects=True
     )
 
-    print("Réponse :", password_response.status_code)
-    print("URL après mot de passe :", password_response.url)
+    print(
+        "Réponse mot de passe :",
+        unlocked.status_code
+    )
 
-    password_response.raise_for_status()
+    unlocked.raise_for_status()
 
-    # Vérification
-    verify = session.get(
+    page = session.get(
         CHAPITRES_URL,
         headers=headers,
         timeout=30
     )
 
-    print("Vérification de l'accès...")
-    verify.raise_for_status()
+    page.raise_for_status()
 
-    soup = BeautifulSoup(verify.text, "html.parser")
+    soup = BeautifulSoup(
+        page.text,
+        "html.parser"
+    )
 
     if soup.find(
         "input",
         attrs={"name": "post_password"}
     ):
         raise RuntimeError(
-            "Le mot de passe de la page semble incorrect."
+            "Le mot de passe de /chapitres/ est refusé."
         )
 
-    html = verify.text
-
 else:
-    print("La page n'est pas protégée par post_password.")
-    html = response.text
+    print(
+        "2. La page n'est pas protégée par post_password."
+    )
 
-
-print("Accès aux chapitres confirmé.")
-print("Taille HTML :", len(html))
-
-
-# ============================================================
-# 3. RECHERCHE DES PDF
-# ============================================================
-
-soup = BeautifulSoup(html, "html.parser")
+print("3. Recherche des PDF...")
 
 pdf_links = []
 
 for link in soup.find_all("a", href=True):
-
     href = link["href"].strip()
 
     if not href.lower().endswith(".pdf"):
         continue
 
-    pdf_url = urljoin(BASE_URL, href)
+    url = urljoin(
+        BASE_URL,
+        href
+    )
 
-    if pdf_url not in pdf_links:
-        pdf_links.append(pdf_url)
+    if url not in pdf_links:
+        pdf_links.append(url)
 
-
-print("PDF trouvés :", len(pdf_links))
-
+print(
+    "PDF trouvés :",
+    len(pdf_links)
+)
 
 if not pdf_links:
     raise RuntimeError(
-        "Aucun PDF trouvé sur la page des chapitres."
+        "Aucun PDF trouvé sur /chapitres/."
     )
 
-
-# ============================================================
-# 4. PRÉPARATION DU DOSSIER
-# ============================================================
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
 
 programmes = []
 
-
-# ============================================================
-# 5. TÉLÉCHARGEMENT DES PDF
-# ============================================================
-
 for url in pdf_links:
+    filename = url.rstrip("/").split("/")[-1]
+    name = filename.lower()
 
-    filename = url.split("/")[-1]
-
-    print()
-    print("=" * 60)
-    print("PDF :", filename)
-    print("URL :", url)
-
-    # --------------------------------------------------------
-    # Détection du chapitre
-    # --------------------------------------------------------
-
-    filename_lower = filename.lower()
-
-    chapter = None
-
-    if filename_lower.startswith("ch"):
-
-        number = ""
-
-        for char in filename_lower[2:]:
-            if char.isdigit():
-                number += char
-            else:
-                break
-
-        if number:
-            chapter = f"ch{number}"
-
-    if not chapter:
-        print("  -> chapitre impossible à déterminer")
+    if not name.startswith("ch"):
         continue
 
+    number = ""
 
-    # --------------------------------------------------------
-    # Détection du type
-    # --------------------------------------------------------
+    for char in name[2:]:
+        if char.isdigit():
+            number += char
+        else:
+            break
 
-    if "td-correction" in filename_lower:
+    if not number:
+        continue
+
+    chapter = f"ch{number}"
+
+    if "td-correction" in name:
         document_type = "correction"
 
-    elif "-td" in filename_lower:
+    elif "-td" in name:
         document_type = "td"
 
-    elif "-cours" in filename_lower:
+    elif "-cours" in name:
         document_type = "cours"
 
     else:
-        print("  -> type inconnu, ignoré")
+        print(
+            "Type inconnu :",
+            filename
+        )
         continue
 
-
-    # --------------------------------------------------------
-    # Nom local
-    # --------------------------------------------------------
-
-    local_filename = filename
-
-    local_path = os.path.join(
+    destination = os.path.join(
         OUTPUT_DIR,
-        local_filename
+        filename
     )
 
-
-    # --------------------------------------------------------
-    # Téléchargement avec HTTP Digest
-    # --------------------------------------------------------
-
-    print(
-        f"  -> téléchargement ({document_type})..."
-    )
+    print()
+    print("----------------------------------------")
+    print("PDF :", filename)
+    print("Type :", document_type)
+    print("URL :", url)
 
     try:
-
         pdf = session.get(
             url,
-            headers=headers,
+            headers={
+                **headers,
+                "Accept": "application/pdf,*/*",
+                "Referer": CHAPITRES_URL
+            },
             auth=HTTPDigestAuth(
                 PDF_ID,
-                PDF_PASSWORD
+                PASSWORD
             ),
-            timeout=30
+            timeout=30,
+            allow_redirects=True
         )
 
         print(
-            "  -> HTTP :",
+            "HTTP :",
             pdf.status_code
         )
 
+        if pdf.status_code == 401:
+            print(
+                "ERREUR 401 : authentification Digest refusée."
+            )
+            continue
+
         pdf.raise_for_status()
 
-        content_type = pdf.headers.get(
-            "Content-Type",
-            ""
-        ).lower()
-
-        if "application/pdf" not in content_type:
-
+        if not pdf.content.startswith(b"%PDF"):
             print(
-                "  -> avertissement : Content-Type =",
-                content_type
+                "ERREUR : la réponse n'est pas un PDF."
             )
+            continue
 
         with open(
-            local_path,
+            destination,
             "wb"
         ) as file:
-
             file.write(pdf.content)
 
         print(
-            "  -> enregistré :",
-            local_path
+            "OK :",
+            destination
         )
 
-    except Exception as error:
+        programmes.append({
+            "chapitre": chapter,
+            "type": document_type,
+            "url": filename
+        })
 
+    except requests.RequestException as error:
         print(
-            "  -> erreur :",
+            "ERREUR :",
             error
         )
 
-        continue
+programmes.sort(
+    key=lambda item: (
+        int(item["chapitre"][2:]),
+        {
+            "cours": 0,
+            "td": 1,
+            "correction": 2
+        }.get(
+            item["type"],
+            9
+        )
+    )
+)
 
+with open(
+    JSON_FILE,
+    "w",
+    encoding="utf-8"
+) as file:
+    json.dump(
+        {
+            "programmes": programmes
+        },
+        file,
+        ensure_ascii=False,
+        indent=2
+    )
 
-    # --------------
-```
+print()
+print("========================================")
+print("TERMINÉ")
+print("========================================")
+print(
+    "PDF téléchargés :",
+    len(programmes)
+)
+print(
+    "JSON généré :",
+    JSON_FILE
+)
