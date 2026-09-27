@@ -1,5 +1,5 @@
 // ========================================
-// ACTIVITÉ MP2I — VERSION OPTIMISÉE
+// ACTIVITÉ MP2I
 // ========================================
 
 const ACTIVITY_KEY = "mp2i-activity";
@@ -9,14 +9,6 @@ const ACTIVITY_KEY = "mp2i-activity";
 // DONNÉES
 // ========================================
 
-function createEmptyData() {
-    return {
-        days: {},
-        documents: [],
-        totalSeconds: 0
-    };
-}
-
 function loadActivity() {
 
     try {
@@ -24,56 +16,43 @@ function loadActivity() {
         const saved =
             localStorage.getItem(ACTIVITY_KEY);
 
-        if (!saved) {
-            return createEmptyData();
+        if (saved) {
+
+            const data =
+                JSON.parse(saved);
+
+            return {
+                days: data.days || {},
+                documents: Array.isArray(data.documents)
+                    ? data.documents
+                    : [],
+                totalSeconds:
+                    Number(data.totalSeconds) || 0
+            };
+
         }
-
-        const data = JSON.parse(saved);
-
-        return {
-            days: data.days || {},
-            documents: Array.isArray(data.documents)
-                ? data.documents
-                : [],
-            totalSeconds:
-                Number(data.totalSeconds) || 0
-        };
 
     } catch (error) {
 
         console.error(
-            "Erreur données activité :",
+            "Erreur activité :",
             error
         );
 
-        return createEmptyData();
     }
-}
 
 
-let activityData = loadActivity();
-
-
-// ========================================
-// SAUVEGARDE
-// ========================================
-
-let saveTimeout = null;
-
-function saveActivity() {
-
-    clearTimeout(saveTimeout);
-
-    saveTimeout = setTimeout(() => {
-
-        localStorage.setItem(
-            ACTIVITY_KEY,
-            JSON.stringify(activityData)
-        );
-
-    }, 100);
+    return {
+        days: {},
+        documents: [],
+        totalSeconds: 0
+    };
 
 }
+
+
+let activityData =
+    loadActivity();
 
 
 // ========================================
@@ -93,9 +72,15 @@ function getDateKey(date = new Date()) {
 }
 
 
+// ========================================
+// JOUR
+// ========================================
+
 function getTodayData() {
 
-    const today = getDateKey();
+    const today =
+        getDateKey();
+
 
     if (!activityData.days[today]) {
 
@@ -106,7 +91,22 @@ function getTodayData() {
 
     }
 
+
     return activityData.days[today];
+
+}
+
+
+// ========================================
+// SAUVEGARDE
+// ========================================
+
+function saveActivity() {
+
+    localStorage.setItem(
+        ACTIVITY_KEY,
+        JSON.stringify(activityData)
+    );
 
 }
 
@@ -115,58 +115,66 @@ function getTodayData() {
 // TIMER
 // ========================================
 
-let lastTimestamp = Date.now();
+let lastTimestamp =
+    Date.now();
+
 
 let timerRunning =
     document.visibilityState === "visible";
 
 
-function updateTimer() {
+function tickTimer() {
 
     if (!timerRunning) {
 
-        lastTimestamp = Date.now();
+        lastTimestamp =
+            Date.now();
 
         return;
+
     }
 
 
-    const now = Date.now();
+    const now =
+        Date.now();
+
 
     const elapsed =
         (now - lastTimestamp) / 1000;
 
 
-    // Protection contre les gros sauts
+    /*
+     * Protection :
+     * on ignore un changement
+     * de page extrêmement long.
+     */
     if (
         elapsed > 0 &&
         elapsed < 120
     ) {
 
-        activityData.totalSeconds += elapsed;
+        activityData.totalSeconds +=
+            elapsed;
+
 
         const today =
             getTodayData();
 
+
         today.minutes +=
             elapsed / 60;
-
-        saveActivity();
 
     }
 
 
-    lastTimestamp = now;
+    lastTimestamp =
+        now;
 
 }
 
 
-// Mise à jour toutes les secondes
-setInterval(updateTimer, 1000);
-
-
 // ========================================
-// VISIBILITÉ DE L'ONGLET
+// VISIBILITÉ
 // ========================================
 
 document.addEventListener(
@@ -180,15 +188,12 @@ document.addEventListener(
 
             timerRunning = true;
 
-            lastTimestamp = Date.now();
-
-            getTodayData();
-
-            saveActivity();
+            lastTimestamp =
+                Date.now();
 
         } else {
 
-            updateTimer();
+            tickTimer();
 
             timerRunning = false;
 
@@ -201,15 +206,6 @@ document.addEventListener(
 
 
 // ========================================
-// ACTIVITÉ INITIALE
-// ========================================
-
-getTodayData();
-
-saveActivity();
-
-
-// ========================================
 // DOCUMENTS
 // ========================================
 
@@ -218,16 +214,12 @@ function registerDocument(url) {
     if (!url) return;
 
 
-    // Déjà enregistré
     if (
         activityData.documents.includes(url)
     ) {
 
-        getTodayData();
-
-        saveActivity();
-
         return;
+
     }
 
 
@@ -243,12 +235,12 @@ function registerDocument(url) {
 
     saveActivity();
 
-    updateActivityDashboard();
+
+    updateDashboard();
 
 }
 
 
-// Détecte les clics sur les documents
 document.addEventListener(
     "click",
     event => {
@@ -264,12 +256,10 @@ document.addEventListener(
             link.href || "";
 
 
-        const isDocument =
+        if (
             href.toLowerCase().includes(".pdf") ||
-            href.includes("notebook.google.com");
-
-
-        if (isDocument) {
+            href.includes("notebook.google.com")
+        ) {
 
             registerDocument(href);
 
@@ -287,7 +277,9 @@ function calculateStreak() {
 
     let streak = 0;
 
-    const date = new Date();
+
+    const date =
+        new Date();
 
 
     while (true) {
@@ -349,16 +341,13 @@ function calculateActiveDays() {
 
 
 // ========================================
-// FORMATAGE DU TEMPS
+// FORMAT TEMPS
 // ========================================
 
 function formatTime(seconds) {
 
     seconds =
-        Math.max(
-            0,
-            Math.floor(seconds)
-        );
+        Math.floor(seconds);
 
 
     const hours =
@@ -407,7 +396,7 @@ function formatTime(seconds) {
 
 
 // ========================================
-// INTENSITÉ HEATMAP
+// HEATMAP
 // ========================================
 
 function getIntensity(day) {
@@ -441,10 +430,6 @@ function getIntensity(day) {
 }
 
 
-// ========================================
-// HEATMAP
-// ========================================
-
 function generateHeatmap() {
 
     const heatmap =
@@ -463,7 +448,6 @@ function generateHeatmap() {
         new Date();
 
 
-    // 365 jours
     for (
         let i = 364;
         i >= 0;
@@ -487,17 +471,13 @@ function generateHeatmap() {
             activityData.days[key];
 
 
-        const intensity =
-            getIntensity(day);
-
-
         const cell =
             document.createElement("div");
 
 
         cell.className =
             "activity-cell activity-" +
-            intensity;
+            getIntensity(day);
 
 
         const minutes =
@@ -535,52 +515,52 @@ function generateHeatmap() {
 // DASHBOARD
 // ========================================
 
-function updateActivityDashboard() {
+function updateDashboard() {
 
-    const streakElement =
+    const streak =
         document.getElementById(
             "activityStreak"
         );
 
 
-    const documentsElement =
+    const documents =
         document.getElementById(
             "activityDocuments"
         );
 
 
-    const timeElement =
+    const time =
         document.getElementById(
             "activityTime"
         );
 
 
-    const daysElement =
+    const days =
         document.getElementById(
             "activityDays"
         );
 
 
-    if (streakElement) {
+    if (streak) {
 
-        streakElement.textContent =
+        streak.textContent =
             calculateStreak() +
             " jours";
 
     }
 
 
-    if (documentsElement) {
+    if (documents) {
 
-        documentsElement.textContent =
+        documents.textContent =
             activityData.documents.length;
 
     }
 
 
-    if (timeElement) {
+    if (time) {
 
-        timeElement.textContent =
+        time.textContent =
             formatTime(
                 activityData.totalSeconds
             );
@@ -588,9 +568,9 @@ function updateActivityDashboard() {
     }
 
 
-    if (daysElement) {
+    if (days) {
 
-        daysElement.textContent =
+        days.textContent =
             calculateActiveDays();
 
     }
@@ -601,37 +581,54 @@ function updateActivityDashboard() {
 }
 
 
+// Alias utilisé après ajout d'un document
+function updateActivityDashboard() {
+
+    updateDashboard();
+
+}
+
+
 // ========================================
-// MISE À JOUR LIVE
+// INITIALISATION
+// ========================================
+
+getTodayData();
+
+updateDashboard();
+
+
+// ========================================
+// TIMER LIVE
 // ========================================
 
 setInterval(() => {
 
-    updateTimer();
+    tickTimer();
 
-    updateActivityDashboard();
+    updateDashboard();
 
 }, 1000);
 
 
-// Première initialisation
-updateActivityDashboard();
-
-
 // ========================================
-// SAUVEGARDE AVANT FERMETURE
+// SAUVEGARDE
 // ========================================
+
+setInterval(() => {
+
+    saveActivity();
+
+}, 10000);
+
 
 window.addEventListener(
     "beforeunload",
     () => {
 
-        updateTimer();
+        tickTimer();
 
-        localStorage.setItem(
-            ACTIVITY_KEY,
-            JSON.stringify(activityData)
-        );
+        saveActivity();
 
     }
 );
