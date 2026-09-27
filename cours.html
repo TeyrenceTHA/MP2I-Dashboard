@@ -1,180 +1,350 @@
 <!DOCTYPE html>
-
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Cours — MP2I</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-```
-<aside class="sidebar glass">
+    <!-- ================================
+         SIDEBAR
+    ================================= -->
 
-    <div class="logo">
-        <span>MP2I</span>
-    </div>
+    <aside class="sidebar">
 
-    <nav>
+        <div class="logo">
 
-        <a href="index.html">
-            <span>⌂</span>
-            Accueil
-        </a>
+            <div class="logo-icon">
+                M
+            </div>
 
-        <a href="kholle.html">
-            <span>▣</span>
-            Khôlles
-        </a>
-        <a href="revoir.html">
-            <span>!</span>
-             À revoir
-        </a>
-        <a href="revisions.html">
-            <span>◈</span>
-            Révisions
-        </a>
-
-        <a class="active" href="cours.html">
-            <span>▤</span>
-            Cours
-        </a>
-
-        <a href="ds.html">
-            <span>▥</span>
-            DS
-        </a>
-
-        <a href="#" id="mobileSettingsButton">
-                <span>⚙</span>
-                Paramètres
-        </a>
-
-    </nav>
-
-    <div class="sidebar-bottom">
-
-        <a href="#" id="settingsButton">
-            <span>⚙</span>
-            Paramètres
-        </a>
-
-    </div>
-
-</aside>
-
-
-<main class="main-content">
-
-    <div class="section-header">
-        <h1>Cours</h1>
-        <p>Retrouvez les cours et TD de mathématiques.</p>
-    </div>
-
-
-    <section>
-
-        <div class="section-header">
-            <h2>Chapitres</h2>
-        </div>
-
-        <div id="cours-container" class="dashboard-grid">
-
-            <div class="glass loading-card">
-                Chargement des cours...
+            <div>
+                <strong>MP2I</strong>
+                <span>Dashboard</span>
             </div>
 
         </div>
 
-    </section>
 
-</main>
+        <nav>
 
+            <a href="index.html">
+                <span>⌂</span>
+                Accueil
+            </a>
 
-<div id="themePanel" class="theme-panel glass">
+            <a href="kholle.html">
+                <span>◈</span>
+                Khôlles
+            </a>
 
-    <h3>Thème</h3>
+            <a href="revoir.html">
+                <span>!</span>
+                À revoir
+            </a>
 
-    <button onclick="setTheme('purple')">
-        <span class="theme-dot purple"></span>
-        Violet
-    </button>
+            <a href="revisions.html">
+                <span>◫</span>
+                Révisions
+            </a>
 
-    <button onclick="setTheme('red')">
-        <span class="theme-dot red"></span>
-        Rouge
-    </button>
+            <a class="active" href="cours.html">
+                <span>▣</span>
+                Cours
+            </a>
 
-    <button onclick="setTheme('green')">
-        <span class="theme-dot green"></span>
-        Vert
-    </button>
+            <a href="ds.html">
+                <span>▤</span>
+                DS
+            </a>
 
-</div>
+            <a
+                href="#"
+                id="mobileSettingsButton"
+            >
+                <span>⚙</span>
+                Paramètres
+            </a>
 
-
-<script>
-
-    const settingsButton =
-        document.getElementById("settingsButton");
-
-    const themePanel =
-        document.getElementById("themePanel");
-
-
-    if (settingsButton && themePanel) {
-
-        settingsButton.addEventListener(
-            "click",
-            function(event) {
-
-                event.preventDefault();
-
-                themePanel.classList.toggle("show");
-
-            }
-        );
-
-    }
+        </nav>
 
 
-    function setTheme(theme) {
+        <div class="sidebar-bottom">
 
-        document.body.classList.remove(
-            "theme-purple",
-            "theme-red",
-            "theme-green"
-        );
+            <a
+                href="#"
+                id="settingsButton"
+            >
+                <span>⚙</span>
+                Paramètres
+            </a>
 
-        document.body.classList.add(
-            "theme-" + theme
-        );
+        </div>
 
-        localStorage.setItem(
-            "theme",
-            theme
-        );
-
-    }
+    </aside>
 
 
-    const savedTheme =
-        localStorage.getItem("theme") || "purple";
+    <!-- ================================
+         CONTENU
+    ================================= -->
 
-    setTheme(savedTheme);
+    <main>
+
+        <header class="topbar">
+
+            <div>
+
+                <p class="eyebrow">
+                    ESPACE PERSONNEL
+                </p>
+
+                <h1>
+                    Cours
+                </h1>
+
+            </div>
 
 
-    /*
-     * CHARGEMENT DES COURS
-     */
+            <div class="profile">
 
-    const container =
-        document.getElementById("cours-container");
+                <div class="avatar">
+                    Y
+                </div>
+
+                <span>
+                    You
+                </span>
+
+            </div>
+
+        </header>
 
 
-    fetch("programmes/cours/cours.json")
+        <!-- ================================
+             INTRODUCTION
+        ================================= -->
+
+        <section class="welcome glass">
+
+            <div>
+
+                <p class="eyebrow">
+                    MATHÉMATIQUES
+                </p>
+
+                <h2>
+                    Tes cours de MP2I
+                </h2>
+
+                <p class="muted">
+                    Retrouve ici les cours et TD
+                    classés par chapitre.
+                </p>
+
+            </div>
+
+
+            <div class="status">
+
+                <span></span>
+
+                Cours
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================
+             CHAPITRES
+        ================================= -->
+
+        <section>
+
+            <div class="section-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        PROGRAMME
+                    </p>
+
+                    <h2>
+                        Chapitres
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="cours-container"
+                class="grid"
+            >
+
+                <div class="glass loading-card">
+
+                    Chargement des cours...
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <footer>
+            MP2I Dashboard · 2026
+        </footer>
+
+    </main>
+
+
+    <!-- ================================
+         PANNEAU THÈME
+    ================================= -->
+
+    <div
+        id="themePanel"
+        class="theme-panel glass"
+    >
+
+        <p class="eyebrow">
+            APPARENCE
+        </p>
+
+        <h3>
+            Thème
+        </h3>
+
+
+        <div class="theme-buttons">
+
+            <button
+                onclick="setTheme('purple')"
+            >
+                <span class="theme-dot purple"></span>
+                Violet
+            </button>
+
+
+            <button
+                onclick="setTheme('red')"
+            >
+                <span class="theme-dot red"></span>
+                Rouge
+            </button>
+
+
+            <button
+                onclick="setTheme('green')"
+            >
+                <span class="theme-dot green"></span>
+                Vert
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================
+         SCRIPT
+    ================================= -->
+
+    <script src="script.js"></script>
+    <script src="activity.js"></script>
+
+
+    <script>
+
+        /*
+         * PARAMÈTRES
+         */
+
+        const settingsButton =
+            document.getElementById(
+                "settingsButton"
+            );
+
+        const themePanel =
+            document.getElementById(
+                "themePanel"
+            );
+
+
+        if (
+            settingsButton &&
+            themePanel
+        ) {
+
+            settingsButton.addEventListener(
+                "click",
+                function(event) {
+
+                    event.preventDefault();
+
+                    themePanel.classList.toggle(
+                        "show"
+                    );
+
+                }
+            );
+
+        }
+
+
+        /*
+         * PARAMÈTRES MOBILE
+         */
+
+        const mobileSettingsButton =
+            document.getElementById(
+                "mobileSettingsButton"
+            );
+
+
+        if (
+            mobileSettingsButton &&
+            themePanel
+        ) {
+
+            mobileSettingsButton.addEventListener(
+                "click",
+                function(event) {
+
+                    event.preventDefault();
+
+                    themePanel.classList.toggle(
+                        "show"
+                    );
+
+                }
+            );
+
+        }
+
+
+        /*
+         * CHARGEMENT DES COURS
+         */
+
+        const container =
+            document.getElementById(
+                "cours-container"
+            );
+
+
+        fetch(
+            "programmes/cours/cours.json"
+        )
 
         .then(response => {
 
@@ -201,9 +371,13 @@
             ) {
 
                 container.innerHTML = `
+
                     <div class="glass loading-card">
+
                         Aucun cours disponible.
+
                     </div>
+
                 `;
 
                 return;
@@ -212,8 +386,7 @@
 
 
             /*
-             * Regrouper les documents
-             * par chapitre
+             * Regrouper par chapitre
              */
 
             const chapitres = {};
@@ -225,11 +398,15 @@
                     const chapitre =
                         document.chapitre;
 
-                    if (!chapitres[chapitre]) {
+
+                    if (
+                        !chapitres[chapitre]
+                    ) {
 
                         chapitres[chapitre] = {};
 
                     }
+
 
                     chapitres[chapitre][
                         document.type
@@ -250,13 +427,21 @@
 
                         const numA =
                             parseInt(
-                                a.replace("ch", "")
+                                a.replace(
+                                    "ch",
+                                    ""
+                                )
                             );
+
 
                         const numB =
                             parseInt(
-                                b.replace("ch", "")
+                                b.replace(
+                                    "ch",
+                                    ""
+                                )
                             );
+
 
                         return numA - numB;
 
@@ -273,12 +458,18 @@
 
                     const numero =
                         parseInt(
-                            chapitre.replace("ch", "")
+                            chapitre.replace(
+                                "ch",
+                                ""
+                            )
                         );
 
 
                     const card =
-                        document.createElement("div");
+                        document.createElement(
+                            "div"
+                        );
+
 
                     card.className =
                         "dashboard-card glass";
@@ -287,44 +478,62 @@
                     card.innerHTML = `
 
                         <div class="card-icon">
-                            ${numero}
+
+                            ${String(numero).padStart(2, "0")}
+
                         </div>
 
-                        <div class="card-content">
+
+                        <div>
 
                             <h3>
                                 Chapitre ${numero}
                             </h3>
 
+                            <p>
+                                Cours et exercices
+                                disponibles.
+                            </p>
+
+
                             <div class="course-buttons">
 
                                 ${
-                                    chapitres[chapitre].cours
+                                    chapitres[
+                                        chapitre
+                                    ].cours
                                     ?
                                     `
-                                    <a
-                                        class="mini-button"
-                                        href="programmes/cours/${chapitres[chapitre].cours}"
-                                        target="_blank"
-                                    >
-                                        Cours
-                                    </a>
+
+                                        <a
+                                            class="mini-button"
+                                            href="programmes/cours/${chapitres[chapitre].cours}"
+                                            target="_blank"
+                                        >
+                                            Cours →
+                                        </a>
+
                                     `
                                     :
                                     ""
                                 }
 
+
                                 ${
-                                    chapitres[chapitre].td
+                                    chapitres[
+                                        chapitre
+                                    ].td
                                     ?
                                     `
-                                    <a
-                                        class="mini-button"
-                                        href="programmes/cours/${chapitres[chapitre].td}"
-                                        target="_blank"
-                                    >
-                                        TD
-                                    </a>
+
+                                        <a
+                                            class="mini-button"
+                                            href="programmes/cours/${chapitres[chapitre].td}"
+                                            target="_blank"
+                                        >
+                                            TD →
+                                        </a>
+
                                     `
                                     :
                                     ""
@@ -337,16 +546,20 @@
                     `;
 
 
-                    container.appendChild(card);
+                    container.appendChild(
+                        card
+                    );
 
                 }
             );
 
         })
 
+
         .catch(error => {
 
             console.error(error);
+
 
             container.innerHTML = `
 
@@ -361,8 +574,7 @@
 
         });
 
-</script>
-```
-
+    </script>
+<script src="activity.js"></script>
 </body>
 </html>
