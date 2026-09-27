@@ -11,7 +11,9 @@ from urllib.parse import urljoin, urlparse
 # ============================================================
 
 BASE_URL = "https://maths-cpge.fr"
+
 COURSES_URL = f"{BASE_URL}/chapitres/"
+LOGIN_URL = f"{BASE_URL}/wp-login.php"
 
 OUTPUT_DIR = "programmes/cours"
 OUTPUT_JSON = os.path.join(
@@ -19,14 +21,38 @@ OUTPUT_JSON = os.path.join(
     "cours.json"
 )
 
-PASSWORD = os.environ.get(
+
+# ============================================================
+# IDENTIFIANTS
+# ============================================================
+
+# Étape 1 :
+CHAPTER_PASSWORD = os.environ.get(
+    "MATHS_CPGE_PASSWORD"
+)
+
+PDF_USERNAME = os.environ.get(
+    "MATHS_CPGE_ID"
+)
+
+PDF_PASSWORD = os.environ.get(
     "MATHS_CPGE_PASSWORD"
 )
 
 
-if not PASSWORD:
+if not CHAPTER_PASSWORD:
     raise RuntimeError(
         "MATHS_CPGE_PASSWORD est manquant."
+    )
+
+if not PDF_USERNAME:
+    raise RuntimeError(
+        "MATHS_CPGE_ID est manquant."
+    )
+
+if not PDF_PASSWORD:
+    raise RuntimeError(
+        "MATHS_CPGE_PASSWORD_PDF est manquant."
     )
 
 
@@ -37,27 +63,38 @@ os.makedirs(
 
 
 # ============================================================
-# SESSION
+# USER-AGENT
 # ============================================================
 
-session = requests.Session()
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/140.0 Safari/537.36"
+)
 
-session.headers.update({
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/140.0 Safari/537.36"
-    )
+
+# ============================================================
+# ÉTAPE 1
+# ACCÈS À /CHAPITRES/
+# ============================================================
+
+print()
+print("=" * 60)
+print("ÉTAPE 1 : accès aux chapitres")
+print("=" * 60)
+
+chapter_session = requests.Session()
+
+chapter_session.headers.update({
+    "User-Agent": USER_AGENT
 })
 
 
-# ============================================================
-# 1. ACCÉDER À LA PAGE
-# ============================================================
+print(
+    "Accès à la page des chapitres..."
+)
 
-print("Accès à la page des chapitres...")
-
-response = session.get(
+response = chapter_session.get(
     COURSES_URL,
     timeout=30
 )
@@ -76,7 +113,7 @@ print(
 
 
 # ============================================================
-# 2. VÉRIFIER SI LA PAGE EST PROTÉGÉE
+# VÉRIFIER LE FORMULAIRE DE MOT DE PASSE
 # ============================================================
 
 soup = BeautifulSoup(
@@ -91,10 +128,6 @@ password_input = soup.find(
     }
 )
 
-
-# ============================================================
-# 3. ENVOYER LE MOT DE PASSE
-# ============================================================
 
 if password_input:
 
@@ -121,19 +154,16 @@ if password_input:
         action
     )
 
-    password_data = {
-        "post_password": PASSWORD
-    }
+    password_data = {}
 
-    # Récupérer les autres champs éventuels
-    for input_tag in form.find_all("input"):
+    # Récupérer les champs éventuels
+    for input_tag in form.find_all(
+        "input"
+    ):
 
         name = input_tag.get("name")
 
         if not name:
-            continue
-
-        if name == "post_password":
             continue
 
         input_type = (
@@ -154,13 +184,13 @@ if password_input:
 
     password_data[
         "post_password"
-    ] = PASSWORD
+    ] = CHAPTER_PASSWORD
 
     print(
         "Envoi du mot de passe..."
     )
 
-    password_response = session.post(
+    password_response = chapter_session.post(
         password_url,
         data=password_data,
         timeout=30,
@@ -191,14 +221,14 @@ else:
 
 
 # ============================================================
-# 4. VÉRIFIER QUE L'ACCÈS EST BIEN DÉVERROUILLÉ
+# VÉRIFICATION DE L'ACCÈS
 # ============================================================
 
 print(
     "Vérification de l'accès..."
 )
 
-chapters_response = session.get(
+chapters_response = chapter_session.get(
     COURSES_URL,
     timeout=30
 )
@@ -220,7 +250,8 @@ still_protected = chapters_soup.find(
 if still_protected:
 
     raise RuntimeError(
-        "Le mot de passe n'a pas été accepté."
+        "Le mot de passe des chapitres "
+        "n'a pas été accepté."
     )
 
 
@@ -235,7 +266,215 @@ print(
 
 
 # ============================================================
-# 5. DÉTECTION DU CHAPITRE
+# ÉTAPE 2
+# AUTHENTIFICATION POUR LES PDF
+# ============================================================
+
+print()
+print("=" * 60)
+print("ÉTAPE 2 : authentification PDF")
+print("=" * 60)
+
+
+pdf_session = requests.Session()
+
+pdf_session.headers.update({
+    "User-Agent": USER_AGENT
+})
+
+
+print(
+    "Accès à la page de connexion..."
+)
+
+pdf_login_page = pdf_session.get(
+    LOGIN_URL,
+    timeout=30
+)
+
+pdf_login_page.raise_for_status()
+
+
+# ============================================================
+# RÉCUPÉRER LE FORMULAIRE WORDPRESS
+# ============================================================
+
+pdf_login_soup = BeautifulSoup(
+    pdf_login_page.text,
+    "html.parser"
+)
+
+login_form = pdf_login_soup.find(
+    "form",
+    id="loginform"
+)
+
+
+if not login_form:
+
+    raise RuntimeError(
+        "Formulaire WordPress "
+        "#loginform introuvable."
+    )
+
+
+pdf_login_data = {}
+
+
+for input_tag in login_form.find_all(
+    "input"
+):
+
+    name = input_tag.get("name")
+
+    if not name:
+        continue
+
+    input_type = (
+        input_tag.get("type")
+        or "text"
+    ).lower()
+
+    if input_type == "submit":
+
+        if name == "wp-submit":
+
+            pdf_login_data[name] = (
+                input_tag.get("value")
+                or "Se connecter"
+            )
+
+        continue
+
+    if name == "log":
+        continue
+
+    if name == "pwd":
+        continue
+
+    pdf_login_data[name] = (
+        input_tag.get("value")
+        or ""
+    )
+
+
+# ============================================================
+# IDENTIFIANTS
+# ============================================================
+
+pdf_login_data["log"] = PDF_USERNAME
+pdf_login_data["pwd"] = PDF_PASSWORD
+
+pdf_login_data.setdefault(
+    "rememberme",
+    ""
+)
+
+pdf_login_data.setdefault(
+    "redirect_to",
+    COURSES_URL
+)
+
+pdf_login_data.setdefault(
+    "testcookie",
+    "1"
+)
+
+
+# ============================================================
+# COOKIE WORDPRESS
+# ============================================================
+
+pdf_session.cookies.set(
+    "wordpress_test_cookie",
+    "WP%20Cookie%20check",
+    domain="maths-cpge.fr"
+)
+
+
+# ============================================================
+# CONNEXION
+# ============================================================
+
+print(
+    "Connexion avec ID + mot de passe..."
+)
+
+pdf_login_response = pdf_session.post(
+    LOGIN_URL,
+    data=pdf_login_data,
+    timeout=30,
+    allow_redirects=True
+)
+
+
+print(
+    "HTTP :",
+    pdf_login_response.status_code
+)
+
+print(
+    "URL après connexion :",
+    pdf_login_response.url
+)
+
+
+# ============================================================
+# VÉRIFICATION
+# ============================================================
+
+if "/wp-login.php" in pdf_login_response.url:
+
+    error_soup = BeautifulSoup(
+        pdf_login_response.text,
+        "html.parser"
+    )
+
+    errors = []
+
+    for selector in (
+        "#login_error",
+        ".message",
+        ".notice-error"
+    ):
+
+        for element in error_soup.select(
+            selector
+        ):
+
+            message = element.get_text(
+                " ",
+                strip=True
+            )
+
+            if message:
+                errors.append(message)
+
+    if errors:
+
+        print()
+        print(
+            "Erreur(s) de connexion :"
+        )
+
+        for error in errors:
+            print(
+                " -",
+                error
+            )
+
+    raise RuntimeError(
+        "Authentification PDF échouée."
+    )
+
+
+print(
+    "Authentification PDF réussie."
+)
+
+
+# ============================================================
+# DÉTECTION DU CHAPITRE
 # ============================================================
 
 def detect_chapter(text):
@@ -259,7 +498,7 @@ def detect_chapter(text):
 
 
 # ============================================================
-# 6. DÉTECTION DU TYPE
+# DÉTECTION DU TYPE
 # ============================================================
 
 def detect_type(text):
@@ -290,13 +529,15 @@ def detect_type(text):
 
 
 # ============================================================
-# 7. RÉCUPÉRATION DES PDF
+# RÉCUPÉRATION DES PDF
 # ============================================================
 
 programmes = []
 
 print()
-print("Recherche des PDF...")
+print("=" * 60)
+print("RECHERCHE DES PDF")
+print("=" * 60)
 
 
 for link in chapters_soup.find_all("a"):
@@ -317,10 +558,13 @@ for link in chapters_soup.find_all("a"):
         + href
     )
 
+
     # Seulement les PDF
     if ".pdf" not in combined.lower():
         continue
 
+
+    # Chapitre
     chapter = detect_chapter(
         combined
     )
@@ -328,6 +572,8 @@ for link in chapters_soup.find_all("a"):
     if not chapter:
         continue
 
+
+    # Type
     document_type = detect_type(
         combined
     )
@@ -335,11 +581,15 @@ for link in chapters_soup.find_all("a"):
     if not document_type:
         continue
 
+
+    # URL complète
     pdf_url = urljoin(
         COURSES_URL,
         href
     )
 
+
+    # Nom du fichier
     parsed_url = urlparse(
         pdf_url
     )
@@ -351,15 +601,16 @@ for link in chapters_soup.find_all("a"):
     if not filename:
         continue
 
+
     output_path = os.path.join(
         OUTPUT_DIR,
         filename
     )
 
+
     print()
     print(
-        f"[{chapter}] "
-        f"{document_type}"
+        f"[{chapter}] {document_type}"
     )
 
     print(
@@ -372,36 +623,55 @@ for link in chapters_soup.find_all("a"):
         filename
     )
 
+
+    # ========================================================
+    # TÉLÉCHARGEMENT
+    # ========================================================
+
     try:
 
-        pdf_response = session.get(
+        pdf_response = pdf_session.get(
             pdf_url,
-            timeout=60
+            timeout=60,
+            allow_redirects=True
         )
+
+
+        print(
+            "HTTP PDF :",
+            pdf_response.status_code
+        )
+
 
         pdf_response.raise_for_status()
 
-        content_type = (
-            pdf_response.headers
-            .get(
-                "Content-Type",
-                ""
-            )
-            .lower()
-        )
 
-        # Vérification PDF
-        if not (
-            pdf_response.content
-            .startswith(b"%PDF")
+        # Vérifier que c'est bien un PDF
+        if not pdf_response.content.startswith(
+            b"%PDF"
         ):
 
             print(
                 "  -> réponse non-PDF, ignorée"
             )
 
+            content_type = (
+                pdf_response.headers
+                .get(
+                    "Content-Type",
+                    ""
+                )
+            )
+
+            print(
+                "  -> Content-Type :",
+                content_type
+            )
+
             continue
 
+
+        # Écrire le fichier
         with open(
             output_path,
             "wb"
@@ -411,15 +681,18 @@ for link in chapters_soup.find_all("a"):
                 pdf_response.content
             )
 
+
         programmes.append({
             "chapitre": chapter,
             "type": document_type,
             "url": filename
         })
 
+
         print(
             "  -> téléchargé"
         )
+
 
     except Exception as error:
 
@@ -430,7 +703,7 @@ for link in chapters_soup.find_all("a"):
 
 
 # ============================================================
-# 8. SUPPRIMER LES DOUBLONS
+# SUPPRIMER LES DOUBLONS
 # ============================================================
 
 unique = {}
@@ -451,7 +724,7 @@ programmes = list(
 
 
 # ============================================================
-# 9. TRI DES CHAPITRES
+# TRI
 # ============================================================
 
 def chapter_number(item):
@@ -488,12 +761,13 @@ programmes.sort(
 
 
 # ============================================================
-# 10. CRÉER cours.json
+# CRÉER cours.json
 # ============================================================
 
 data = {
     "programmes": programmes
 }
+
 
 with open(
     OUTPUT_JSON,
@@ -510,11 +784,11 @@ with open(
 
 
 # ============================================================
-# 11. RÉSUMÉ
+# RÉSUMÉ
 # ============================================================
 
 print()
-print("=" * 50)
+print("=" * 60)
 
 print(
     f"{len(programmes)} document(s) "
@@ -547,6 +821,7 @@ print(
 
 print()
 
+
 for chapter in chapters:
 
     documents = [
@@ -561,4 +836,5 @@ for chapter in chapters:
         + ", ".join(documents)
     )
 
-print("=" * 50)
+
+print("=" * 60)
