@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DS — MP2I</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                M
+            </div>
+
+            <div>
+
+                <strong>MP2I</strong>
+
+                <span>
+                    Dashboard
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <nav>
+
+            <a href="index.html">
+                <span>⌂</span>
+                Accueil
+            </a>
+
+
+            <a href="kholle.html">
+                <span>◈</span>
+                Khôlles
+            </a>
+
+
+            <a href="revisions.html">
+                <span>◫</span>
+                Révisions
+            </a>
+
+
+            <a href="cours.html">
+                <span>▣</span>
+                Cours
+            </a>
+
+
+            <a
+                href="ds.html"
+                class="active"
+            >
+                <span>▤</span>
+                DS
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <a href="index.html">
+
+                <span>⚙</span>
+
+                Paramètres
+
+            </a>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================
+         CONTENU
+    ========================== -->
+
+    <main>
+
+
+        <header class="topbar">
+
+            <div>
+
+                <p class="eyebrow">
+                    MATHÉMATIQUES
+                </p>
+
+                <h1>
+                    DS
+                </h1>
+
+            </div>
+
+
+            <div class="profile">
+
+                <div class="avatar">
+                    Y
+                </div>
+
+                <span>
+                    You
+                </span>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================
+             RECHERCHE
+        ========================== -->
+
+        <div class="global-search">
+
+            <input
+                type="text"
+                id="globalSearch"
+                placeholder="Rechercher dans MP2I..."
+                autocomplete="off"
+            >
+
+            <div
+                id="searchResults"
+                class="search-results"
+            ></div>
+
+        </div>
+
+
+
+        <!-- =========================
+             TITRE
+        ========================== -->
+
+        <div class="section-header">
+
+            <h2>
+                Devoirs
+            </h2>
+
+            <p class="muted">
+                Sujets de DM et DS de mathématiques.
+            </p>
+
+        </div>
+
+
+
+        <!-- =========================
+             PROGRAMMES
+        ========================== -->
+
+        <section
+            class="grid"
+            id="programmes"
+        >
+
+            <div class="glass loading-card">
+
+                Chargement des devoirs...
+
+            </div>
+
+        </section>
+
+
+
+        <footer>
+
+            MP2I Dashboard · 2026
+
+        </footer>
+
+
+    </main>
+
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script src="script.js"></script>
+
+
+    <script>
+
+        const container =
+            document.getElementById("programmes");
+
+
+        fetch("programmes/ds/ds.json")
+
+            .then(response => {
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "ds.json introuvable"
+                    );
+
+                }
+
+                return response.json();
+
+            })
+
+
+            .then(data => {
+
+                container.innerHTML = "";
+
+
+                if (
+                    !data.devoirs ||
+                    data.devoirs.length === 0
+                ) {
+
+                    container.innerHTML = `
+
+                        <div class="glass loading-card">
+
+                            Aucun devoir disponible.
+
+                        </div>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                data.devoirs.forEach(devoir => {
+
+                    const card =
+                        document.createElement("a");
+
+
+                    card.className =
+                        "dashboard-card glass";
+
+
+                    card.href =
+                        "programmes/ds/" +
+                        devoir.fichier;
+
+
+                    card.target =
+                        "_blank";
+
+
+                    const type =
+                        devoir.type || "DS";
+
+
+                    card.innerHTML = `
+
+                        <div class="card-icon">
+                            ${type}
+                        </div>
+
+
+                        <div>
+
+                            <h3>
+                                ${devoir.titre}
+                            </h3>
+
+                            <p>
+                                Sujet de mathématiques
+                            </p>
+
+                        </div>
+
+
+                        <span class="arrow">
+                            →
+                        </span>
+
+                    `;
+
+
+                    container.appendChild(card);
+
+                });
+
+            })
+
+
+            .catch(error => {
+
+                console.error(error);
+
+
+                container.innerHTML = `
+
+                    <div class="glass loading-card">
+
+                        Impossible de charger les devoirs.
+
+                    </div>
+
+                `;
+
+            });
+
+    </script>
+
+
+</body>
+
+</html>

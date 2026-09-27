@@ -12,7 +12,9 @@ if (settingsButton && themePanel) {
     });
 }
 
+
 function setTheme(theme) {
+
     document.body.classList.remove(
         "theme-purple",
         "theme-red",
@@ -24,7 +26,9 @@ function setTheme(theme) {
     localStorage.setItem("theme", theme);
 }
 
+
 const savedTheme = localStorage.getItem("theme") || "purple";
+
 setTheme(savedTheme);
 
 
@@ -38,58 +42,34 @@ const searchResults = document.getElementById("searchResults");
 let searchData = [];
 
 
-// ---------- Cours ----------
+// ================================
+// NORMALISER LE TEXTE
+// ================================
 
-fetch("programmes/cours/cours.json")
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("cours.json introuvable");
-        }
+function normalizeText(text) {
 
-        return response.json();
-    })
-    .then(data => {
-
-        if (!data.programmes) return;
-
-        data.programmes.forEach(document => {
-
-            const numero = parseInt(
-                document.chapitre.replace("ch", "")
-            );
-
-            searchData.push({
-                title:
-                    "Chapitre " +
-                    numero +
-                    " — " +
-                    document.type.toUpperCase(),
-
-                type: "Cours",
-
-                url:
-                    "programmes/cours/" +
-                    document.url
-            });
-
-        });
-
-    })
-    .catch(error => {
-        console.error("Erreur cours :", error);
-    });
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
 
 
-// ---------- Khôlles ----------
+// ================================
+// CHARGER LES KHÔLLES
+// ================================
 
 fetch("programmes/maths/maths.json")
+
     .then(response => {
+
         if (!response.ok) {
             throw new Error("maths.json introuvable");
         }
 
         return response.json();
     })
+
     .then(data => {
 
         if (!data.programmes) return;
@@ -97,25 +77,97 @@ fetch("programmes/maths/maths.json")
         data.programmes.forEach(programme => {
 
             searchData.push({
+
                 title: programme.semaine,
+
+                description: programme.titre,
 
                 type: "Khôlle",
 
                 url:
                     "programmes/maths/" +
                     programme.fichier
+
             });
 
         });
 
     })
+
     .catch(error => {
-        console.error("Erreur khôlles :", error);
+
+        console.error(
+            "Erreur chargement khôlles :",
+            error
+        );
+
     });
 
 
 // ================================
-// AFFICHAGE DES RÉSULTATS
+// CHARGER LES COURS
+// ================================
+
+fetch("programmes/cours/cours.json")
+
+    .then(response => {
+
+        if (!response.ok) {
+            throw new Error("cours.json introuvable");
+        }
+
+        return response.json();
+    })
+
+    .then(data => {
+
+        if (!data.programmes) return;
+
+        data.programmes.forEach(document => {
+
+            const numero = document.chapitre
+                .replace("ch", "");
+
+            const type =
+                document.type
+                    ? document.type.toUpperCase()
+                    : "DOCUMENT";
+
+            searchData.push({
+
+                title:
+                    "Chapitre " +
+                    numero +
+                    " — " +
+                    type,
+
+                description:
+                    "Cours de mathématiques",
+
+                type: "Cours",
+
+                url:
+                    "programmes/cours/" +
+                    document.url
+
+            });
+
+        });
+
+    })
+
+    .catch(error => {
+
+        console.error(
+            "Erreur chargement cours :",
+            error
+        );
+
+    });
+
+
+// ================================
+// AFFICHER LES RÉSULTATS
 // ================================
 
 function displayResults(query) {
@@ -123,30 +175,61 @@ function displayResults(query) {
     searchResults.innerHTML = "";
 
     if (!query) {
+
         searchResults.classList.remove("show");
+
         return;
     }
 
-    const results = searchData.filter(item =>
-        item.title
-            .toLowerCase()
-            .includes(query.toLowerCase())
-    );
+
+    const normalizedQuery =
+        normalizeText(query);
+
+
+    const results = searchData.filter(item => {
+
+        const title =
+            normalizeText(item.title);
+
+        const description =
+            normalizeText(
+                item.description || ""
+            );
+
+        const type =
+            normalizeText(item.type || "");
+
+        return (
+            title.includes(normalizedQuery) ||
+            description.includes(normalizedQuery) ||
+            type.includes(normalizedQuery)
+        );
+
+    });
+
+
+    // Aucun résultat
 
     if (results.length === 0) {
 
         searchResults.innerHTML = `
+
             <div class="search-result">
+
                 <div>
+
                     <div class="search-result-title">
                         Aucun résultat
                     </div>
 
                     <div class="search-result-type">
-                        Aucun document trouvé
+                        Aucun document correspondant
                     </div>
+
                 </div>
+
             </div>
+
         `;
 
         searchResults.classList.add("show");
@@ -155,30 +238,48 @@ function displayResults(query) {
     }
 
 
+    // Résultats
+
     results.forEach(item => {
 
-        const result = document.createElement("a");
+        const result =
+            document.createElement("a");
 
-        result.className = "search-result";
+        result.className =
+            "search-result";
 
-        result.href = item.url;
-        result.target = "_blank";
+        result.href =
+            item.url;
+
+        result.target =
+            "_blank";
+
 
         result.innerHTML = `
+
             <div>
+
                 <div class="search-result-title">
                     ${item.title}
                 </div>
 
                 <div class="search-result-type">
                     ${item.type}
+                    ${item.description
+                        ? " · " + item.description
+                        : ""
+                    }
                 </div>
+
             </div>
+
         `;
+
 
         searchResults.appendChild(result);
 
     });
+
 
     searchResults.classList.add("show");
 }
@@ -190,27 +291,39 @@ function displayResults(query) {
 
 if (searchInput) {
 
-    searchInput.addEventListener("input", function() {
+    searchInput.addEventListener(
+        "input",
+        function() {
 
-        displayResults(
-            searchInput.value.trim()
-        );
+            displayResults(
+                searchInput.value.trim()
+            );
 
-    });
+        }
+    );
 
 }
 
 
-// Fermer quand on clique ailleurs
+// ================================
+// FERMER LA RECHERCHE
+// ================================
 
-document.addEventListener("click", function(event) {
+document.addEventListener(
+    "click",
+    function(event) {
 
-    if (
-        !event.target.closest(".global-search")
-    ) {
+        if (
+            !event.target.closest(
+                ".global-search"
+            )
+        ) {
 
-        searchResults.classList.remove("show");
+            searchResults.classList.remove(
+                "show"
+            );
+
+        }
 
     }
-
-});
+);
