@@ -40,6 +40,13 @@ soup = BeautifulSoup(
     response.text,
     "html.parser"
 )
+print("Nombre de liens :", len(soup.find_all("a")))
+
+for link in soup.find_all("a", href=True):
+    href = link["href"].strip()
+
+    if "devoir" in href.lower() or ".pdf" in href.lower():
+        print("LIEN TROUVÉ :", href)
 
 
 documents = []
