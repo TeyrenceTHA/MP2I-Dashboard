@@ -277,6 +277,8 @@ programmes.sort(
         )
     )
 )
+print("PROGRAMMES AVANT JSON :")
+print(json.dumps(programmes, ensure_ascii=False, indent=2))
 
 with open(
     JSON_FILE,
@@ -291,6 +293,9 @@ with open(
         ensure_ascii=False,
         indent=2
     )
+print("JSON ÉCRIT :")
+with open(JSON_FILE, "r", encoding="utf-8") as file:
+    print(file.read())
 
 print()
 print("========================================")
