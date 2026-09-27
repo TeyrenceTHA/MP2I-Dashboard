@@ -36,6 +36,13 @@ response = session.get(
 print("Page HTTP :", response.status_code)
 
 response.raise_for_status()
+print("=== CONTENU AUTOUR DE DEVOIRS ===")
+
+for ligne in response.text.splitlines():
+    if "dm02" in ligne.lower() or "ds02" in ligne.lower():
+        print(ligne)
+
+print("=== FIN ===")
 
 print("Taille de la page :", len(response.text))
 
