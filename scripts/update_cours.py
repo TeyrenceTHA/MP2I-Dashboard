@@ -1,33 +1,44 @@
 import os
 import json
 import re
-import base64
-import html
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 BASE_URL = "https://maths-cpge.fr"
-LOGIN_URL = f"{BASE_URL}/wp-login.php"
 COURSES_URL = f"{BASE_URL}/chapitres/"
 
 OUTPUT_DIR = "programmes/cours"
-OUTPUT_JSON = os.path.join(OUTPUT_DIR, "cours.json")
+OUTPUT_JSON = os.path.join(
+    OUTPUT_DIR,
+    "cours.json"
+)
+
+PASSWORD = os.environ.get(
+    "MATHS_CPGE_PASSWORD"
+)
 
 
-USERNAME = os.environ.get("MATHS_CPGE_ID")
-PASSWORD = os.environ.get("MATHS_CPGE_PASSWORD")
-
-
-if not USERNAME or not PASSWORD:
+if not PASSWORD:
     raise RuntimeError(
-        "MATHS_CPGE_ID ou MATHS_CPGE_PASSWORD est manquant."
+        "MATHS_CPGE_PASSWORD est manquant."
     )
 
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
 
+
+# ============================================================
+# SESSION
+# ============================================================
 
 session = requests.Session()
 
@@ -41,279 +52,151 @@ session.headers.update({
 
 
 # ============================================================
-# 1. RÉCUPÉRER LA PAGE DE CONNEXION
+# 1. ACCÉDER À LA PAGE
 # ============================================================
 
-print("Récupération de la page de connexion...")
+print("Accès à la page des chapitres...")
 
-login_page = session.get(
-    LOGIN_URL,
+response = session.get(
+    COURSES_URL,
     timeout=30
 )
 
-login_page.raise_for_status()
+response.raise_for_status()
 
+print(
+    "HTTP :",
+    response.status_code
+)
+
+print(
+    "URL :",
+    response.url
+)
+
+
+# ============================================================
+# 2. VÉRIFIER SI LA PAGE EST PROTÉGÉE
+# ============================================================
 
 soup = BeautifulSoup(
-    login_page.text,
+    response.text,
     "html.parser"
 )
 
-
-# ============================================================
-# 2. RÉCUPÉRER LES CHAMPS DU FORMULAIRE
-# ============================================================
-
-form = soup.find(
-    "form",
-    id="loginform"
+password_input = soup.find(
+    "input",
+    {
+        "name": "post_password"
+    }
 )
 
 
-if not form:
-    raise RuntimeError(
-        "Formulaire WordPress #loginform introuvable."
+# ============================================================
+# 3. ENVOYER LE MOT DE PASSE
+# ============================================================
+
+if password_input:
+
+    print(
+        "Page protégée par mot de passe."
     )
 
-
-login_data = {}
-
-
-for input_tag in form.find_all("input"):
-
-    name = input_tag.get("name")
-
-    if not name:
-        continue
-
-    input_type = (
-        input_tag.get("type") or "text"
-    ).lower()
-
-    # Les champs utilisateur/mot de passe seront ajoutés
-    # explicitement plus bas.
-    if name in ("log", "pwd"):
-        continue
-
-    # Bouton submit
-    if input_type == "submit":
-
-        if name == "wp-submit":
-
-            login_data[name] = (
-                input_tag.get("value")
-                or "Se connecter"
-            )
-
-        continue
-
-    login_data[name] = (
-        input_tag.get("value") or ""
+    form = password_input.find_parent(
+        "form"
     )
 
-
-# Valeurs principales
-login_data["log"] = USERNAME
-login_data["pwd"] = PASSWORD
-
-
-# ============================================================
-# 3. RÉCUPÉRER LE CHAMP WP ARMOUR / HONEYPOT
-# ============================================================
-
-print("Recherche du champ anti-spam WP Armour...")
-
-
-wpa_field_name = None
-wpa_field_value = None
-
-
-# On cherche :
-#
-# wpa_field_info = JSON.parse(atob("...."));
-#
-
-pattern = re.compile(
-    r'wpa_field_info\s*=\s*JSON\.parse'
-    r'\(\s*atob\(["\']([^"\']+)["\']\)',
-    re.IGNORECASE
-)
-
-
-match = pattern.search(
-    login_page.text
-)
-
-
-if match:
-
-    encoded = match.group(1)
-
-    try:
-
-        decoded = base64.b64decode(
-            encoded
-        ).decode("utf-8")
-
-        wpa_data = json.loads(
-            decoded
-        )
-
-        wpa_field_name = (
-            wpa_data.get("wpa_field_name")
-        )
-
-        wpa_field_value = (
-            wpa_data.get("wpa_field_value")
-        )
-
-        print(
-            "Champ WP Armour détecté :",
-            wpa_field_name
-        )
-
-    except Exception as error:
-
+    if not form:
         raise RuntimeError(
-            "Impossible de décoder les données WP Armour : "
-            + str(error)
+            "Formulaire de mot de passe introuvable."
         )
+
+    action = form.get("action")
+
+    if not action:
+        action = COURSES_URL
+
+    password_url = urljoin(
+        COURSES_URL,
+        action
+    )
+
+    password_data = {
+        "post_password": PASSWORD
+    }
+
+    # Récupérer les autres champs éventuels
+    for input_tag in form.find_all("input"):
+
+        name = input_tag.get("name")
+
+        if not name:
+            continue
+
+        if name == "post_password":
+            continue
+
+        input_type = (
+            input_tag.get("type")
+            or "text"
+        ).lower()
+
+        if input_type in (
+            "submit",
+            "button"
+        ):
+            continue
+
+        password_data[name] = (
+            input_tag.get("value")
+            or ""
+        )
+
+    password_data[
+        "post_password"
+    ] = PASSWORD
+
+    print(
+        "Envoi du mot de passe..."
+    )
+
+    password_response = session.post(
+        password_url,
+        data=password_data,
+        timeout=30,
+        allow_redirects=True
+    )
+
+    password_response.raise_for_status()
+
+    print(
+        "Réponse :",
+        password_response.status_code
+    )
+
+    print(
+        "URL après mot de passe :",
+        password_response.url
+    )
 
 else:
 
     print(
-        "Aucun champ WP Armour détecté."
+        "Aucun formulaire de mot de passe."
+    )
+
+    print(
+        "Accès déjà autorisé."
     )
 
 
-if wpa_field_name:
-
-    login_data[wpa_field_name] = str(
-        wpa_field_value
-    )
-
-
 # ============================================================
-# 4. PARAMÈTRES WORDPRESS
+# 4. VÉRIFIER QUE L'ACCÈS EST BIEN DÉVERROUILLÉ
 # ============================================================
-
-login_data.setdefault(
-    "rememberme",
-    ""
-)
-
-login_data.setdefault(
-    "redirect_to",
-    COURSES_URL
-)
-
-login_data.setdefault(
-    "testcookie",
-    "1"
-)
-
-login_data.setdefault(
-    "wpa_initiator",
-    ""
-)
-
-
-print("Connexion au site...")
-
-
-# Le cookie testcookie de WordPress
-# est parfois nécessaire.
-session.cookies.set(
-    "wordpress_test_cookie",
-    "WP%20Cookie%20check",
-    domain="maths-cpge.fr"
-)
-
-
-# ============================================================
-# 5. CONNEXION
-# ============================================================
-
-login_response = session.post(
-    LOGIN_URL,
-    data=login_data,
-    timeout=30,
-    allow_redirects=True
-)
-
 
 print(
-    "Login HTTP :",
-    login_response.status_code
+    "Vérification de l'accès..."
 )
-
-print(
-    "URL après connexion :",
-    login_response.url
-)
-
-
-# ============================================================
-# 6. VÉRIFICATION DE LA CONNEXION
-# ============================================================
-
-if "/wp-login.php" in login_response.url:
-
-    login_soup = BeautifulSoup(
-        login_response.text,
-        "html.parser"
-    )
-
-    error_messages = []
-
-    for selector in (
-        ".message",
-        "#login_error",
-        ".notice-error"
-    ):
-
-        for element in login_soup.select(
-            selector
-        ):
-
-            text = element.get_text(
-                " ",
-                strip=True
-            )
-
-            if text:
-                error_messages.append(text)
-
-
-    if error_messages:
-
-        print()
-        print(
-            "Erreur de connexion :"
-        )
-
-        for message in error_messages:
-
-            print(
-                " -",
-                message
-            )
-
-    raise RuntimeError(
-        "Authentification WordPress échouée."
-    )
-
-
-print("Connexion réussie.")
-
-
-# ============================================================
-# 7. RÉCUPÉRER LA PAGE DES CHAPITRES
-# ============================================================
-
-print()
-print("Récupération des chapitres...")
-
 
 chapters_response = session.get(
     COURSES_URL,
@@ -322,15 +205,27 @@ chapters_response = session.get(
 
 chapters_response.raise_for_status()
 
-
-print(
-    "Page HTTP :",
-    chapters_response.status_code
+chapters_soup = BeautifulSoup(
+    chapters_response.text,
+    "html.parser"
 )
 
+still_protected = chapters_soup.find(
+    "input",
+    {
+        "name": "post_password"
+    }
+)
+
+if still_protected:
+
+    raise RuntimeError(
+        "Le mot de passe n'a pas été accepté."
+    )
+
+
 print(
-    "URL finale :",
-    chapters_response.url
+    "Accès aux chapitres confirmé."
 )
 
 print(
@@ -339,14 +234,8 @@ print(
 )
 
 
-soup = BeautifulSoup(
-    chapters_response.text,
-    "html.parser"
-)
-
-
 # ============================================================
-# 8. DÉTECTION DES DOCUMENTS
+# 5. DÉTECTION DU CHAPITRE
 # ============================================================
 
 def detect_chapter(text):
@@ -359,13 +248,19 @@ def detect_chapter(text):
     if not match:
         return None
 
-    return (
-        "ch" +
-        str(
-            int(match.group(1))
-        ).zfill(2)
+    number = int(
+        match.group(1)
     )
 
+    return (
+        "ch"
+        + str(number).zfill(2)
+    )
+
+
+# ============================================================
+# 6. DÉTECTION DU TYPE
+# ============================================================
 
 def detect_type(text):
 
@@ -394,37 +289,37 @@ def detect_type(text):
     return None
 
 
+# ============================================================
+# 7. RÉCUPÉRATION DES PDF
+# ============================================================
+
 programmes = []
 
+print()
+print("Recherche des PDF...")
 
-# ============================================================
-# 9. CHERCHER LES LIENS PDF
-# ============================================================
 
-for link in soup.find_all("a"):
+for link in chapters_soup.find_all("a"):
 
     href = link.get("href")
 
     if not href:
         continue
 
-
     text = link.get_text(
         " ",
         strip=True
     )
 
-
     combined = (
-        text +
-        " " +
-        href
-    ).lower()
+        text
+        + " "
+        + href
+    )
 
-
-    if ".pdf" not in combined:
+    # Seulement les PDF
+    if ".pdf" not in combined.lower():
         continue
-
 
     chapter = detect_chapter(
         combined
@@ -433,7 +328,6 @@ for link in soup.find_all("a"):
     if not chapter:
         continue
 
-
     document_type = detect_type(
         combined
     )
@@ -441,30 +335,42 @@ for link in soup.find_all("a"):
     if not document_type:
         continue
 
-
     pdf_url = urljoin(
-        BASE_URL,
+        COURSES_URL,
         href
     )
 
-
-    filename = os.path.basename(
-        pdf_url.split("?")[0]
+    parsed_url = urlparse(
+        pdf_url
     )
 
+    filename = os.path.basename(
+        parsed_url.path
+    )
+
+    if not filename:
+        continue
 
     output_path = os.path.join(
         OUTPUT_DIR,
         filename
     )
 
-
+    print()
     print(
         f"[{chapter}] "
-        f"{document_type} -> "
-        f"{filename}"
+        f"{document_type}"
     )
 
+    print(
+        "URL :",
+        pdf_url
+    )
+
+    print(
+        "Fichier :",
+        filename
+    )
 
     try:
 
@@ -475,11 +381,19 @@ for link in soup.find_all("a"):
 
         pdf_response.raise_for_status()
 
+        content_type = (
+            pdf_response.headers
+            .get(
+                "Content-Type",
+                ""
+            )
+            .lower()
+        )
 
-        # Vérification basique :
-        # un vrai PDF commence normalement par %PDF
-        if not pdf_response.content.startswith(
-            b"%PDF"
+        # Vérification PDF
+        if not (
+            pdf_response.content
+            .startswith(b"%PDF")
         ):
 
             print(
@@ -487,7 +401,6 @@ for link in soup.find_all("a"):
             )
 
             continue
-
 
         with open(
             output_path,
@@ -498,22 +411,15 @@ for link in soup.find_all("a"):
                 pdf_response.content
             )
 
-
         programmes.append({
-
             "chapitre": chapter,
-
             "type": document_type,
-
             "url": filename
-
         })
-
 
         print(
             "  -> téléchargé"
         )
-
 
     except Exception as error:
 
@@ -524,11 +430,10 @@ for link in soup.find_all("a"):
 
 
 # ============================================================
-# 10. SUPPRIMER LES DOUBLONS
+# 8. SUPPRIMER LES DOUBLONS
 # ============================================================
 
 unique = {}
-
 
 for item in programmes:
 
@@ -546,7 +451,7 @@ programmes = list(
 
 
 # ============================================================
-# 11. TRI
+# 9. TRI DES CHAPITRES
 # ============================================================
 
 def chapter_number(item):
@@ -583,13 +488,12 @@ programmes.sort(
 
 
 # ============================================================
-# 12. ÉCRIRE cours.json
+# 10. CRÉER cours.json
 # ============================================================
 
 data = {
     "programmes": programmes
 }
-
 
 with open(
     OUTPUT_JSON,
@@ -605,35 +509,43 @@ with open(
     )
 
 
+# ============================================================
+# 11. RÉSUMÉ
+# ============================================================
+
 print()
+print("=" * 50)
+
 print(
-    f"{len(programmes)} documents "
-    f"enregistrés dans "
-    f"{OUTPUT_JSON}"
+    f"{len(programmes)} document(s) "
+    f"enregistré(s)"
 )
 
+print(
+    f"Fichier : {OUTPUT_JSON}"
+)
 
-# ============================================================
-# 13. RÉCAPITULATIF
-# ============================================================
 
 chapters = sorted(
     set(
         item["chapitre"]
         for item in programmes
     ),
-    key=lambda chapter: int(
-        re.search(
-            r"\d+",
-            chapter
-        ).group()
-    )
+    key=lambda chapter:
+        int(
+            re.search(
+                r"\d+",
+                chapter
+            ).group()
+        )
 )
 
 
 print(
-    f"{len(chapters)} chapitre(s) détecté(s)."
+    f"{len(chapters)} chapitre(s) détecté(s)"
 )
+
+print()
 
 for chapter in chapters:
 
@@ -644,6 +556,9 @@ for chapter in chapters:
     ]
 
     print(
-        chapter + " : " +
-        ", ".join(documents)
+        chapter
+        + " : "
+        + ", ".join(documents)
     )
+
+print("=" * 50)
