@@ -596,3 +596,21 @@ document.addEventListener(
 
     }
 );
+if ("serviceWorker" in navigator) {
+
+    window.addEventListener("load", () => {
+
+        navigator.serviceWorker.register("./sw.js")
+            .then(() => {
+                console.log("PWA activée");
+            })
+            .catch(error => {
+                console.error(
+                    "Erreur PWA :",
+                    error
+                );
+            });
+
+    });
+
+}
