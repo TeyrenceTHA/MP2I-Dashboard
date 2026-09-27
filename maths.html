@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathématiques — MP2I</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+
+    <div class="logo">
+        <div class="logo-icon">M</div>
+        <div>
+            <strong>MP2I</strong>
+            <span>Dashboard</span>
+        </div>
+    </div>
+
+    <nav>
+        <a href="index.html">
+            <span>⌂</span>
+            Accueil
+        </a>
+
+        <a href="kholle.html">
+            <span>◈</span>
+            Khôlles
+        </a>
+
+        <a class="active" href="revisions.html">
+            <span>◫</span>
+            Révisions
+        </a>
+
+        <a href="cours.html">
+            <span>▣</span>
+            Cours
+        </a>
+
+        <a href="ds.html">
+            <span>▤</span>
+            DS
+        </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+        <a href="#" id="settingsButton">
+            <span>⚙</span>
+            Paramètres
+        </a>
+    </div>
+
+</aside>
+
+<main>
+
+    <header class="topbar">
+
+        <div>
+            <p class="eyebrow">RÉVISIONS</p>
+            <h1>Mathématiques</h1>
+        </div>
+
+        <div class="profile">
+            <div class="avatar">Y</div>
+            <span>You</span>
+        </div>
+
+    </header>
+
+    <div class="section-header">
+
+        <div>
+            <p class="eyebrow">NOTEBOOKS</p>
+            <h2>Mes notebooks de maths</h2>
+        </div>
+
+        <button class="mini-button" id="addNotebook">
+            + Ajouter un notebook
+        </button>
+
+    </div>
+
+    <section id="notebookGrid" class="grid"></section>
+
+    <div id="themePanel" class="theme-panel glass">
+
+        <p class="eyebrow">APPARENCE</p>
+        <h3>Thème</h3>
+
+        <div class="theme-buttons">
+
+            <button onclick="setTheme('purple')">
+                <span class="theme-dot purple"></span>
+                Violet
+            </button>
+
+            <button onclick="setTheme('red')">
+                <span class="theme-dot red"></span>
+                Rouge
+            </button>
+
+            <button onclick="setTheme('green')">
+                <span class="theme-dot green"></span>
+                Vert
+            </button>
+
+        </div>
+
+    </div>
+
+    <footer>
+        MP2I Dashboard · 2026
+    </footer>
+
+</main>
+
+<script src="script.js"></script>
+
+<script>
+
+const defaultNotebooks = [
+
+    {
+        name: "Chapitre 01",
+        url: "https://notebook.google.com/notebook/53a83fb8-b3cc-473c-9e34-74f8ea163de8"
+    },
+
+    {
+        name: "Chapitre 02",
+        url: "https://notebook.google.com/notebook/3d8d29ae-14af-4eb2-b0ca-dcf037258cbd"
+    },
+
+    {
+        name: "Chapitre 03",
+        url: "https://notebook.google.com/notebook/53d62339-d5cc-4625-a762-63c861db9878"
+    },
+
+    {
+        name: "Chapitre 04",
+        url: "https://notebook.google.com/notebook/03022b44-e631-47ec-ade6-6340081f188c"
+    },
+
+    {
+        name: "Chapitre 05",
+        url: "https://notebook.google.com/notebook/8efd8d62-cb90-448d-bb94-0984954a7b51"
+    },
+
+    {
+        name: "Chapitre 06",
+        url: "https://notebook.google.com/notebook/5636f046-caf4-4a89-bee1-10e88026ae19"
+    }
+
+];
+
+const storageKey = "mp2i-maths-notebooks";
+
+let notebooks =
+    JSON.parse(localStorage.getItem(storageKey)) ||
+    defaultNotebooks;
+
+function saveNotebooks() {
+
+    localStorage.setItem(
+        storageKey,
+        JSON.stringify(notebooks)
+    );
+
+}
+
+function displayNotebooks() {
+
+    const grid =
+        document.getElementById("notebookGrid");
+
+    grid.innerHTML = "";
+
+    notebooks.forEach((notebook, index) => {
+
+        const card =
+            document.createElement("div");
+
+        card.className =
+            "dashboard-card glass";
+
+        card.innerHTML = `
+
+            <div class="card-icon">🤖</div>
+
+            <div>
+
+                <h3>${notebook.name}</h3>
+
+                <p>
+                    Notebook de révision
+                </p>
+
+                <div class="course-buttons">
+
+                    <a
+                        class="mini-button"
+                        href="${notebook.url}"
+                        target="_blank"
+                    >
+                        Ouvrir →
+                    </a>
+
+                </div>
+
+            </div>
+
+        `;
+
+        grid.appendChild(card);
+
+    });
+
+}
+
+document
+    .getElementById("addNotebook")
+    .addEventListener("click", function() {
+
+        const name =
+            prompt("Nom du notebook :");
+
+        if (!name) return;
+
+        const url =
+            prompt("Lien du notebook :");
+
+        if (!url) return;
+
+        notebooks.push({
+            name: name,
+            url: url
+        });
+
+        saveNotebooks();
+        displayNotebooks();
+
+    });
+
+displayNotebooks();
+
+</script>
+
+</body>
+</html>
