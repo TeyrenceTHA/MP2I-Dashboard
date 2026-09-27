@@ -1,4 +1,54 @@
 {
     "source": "https://maths-cpge.fr/devoirs/",
-    "devoirs": []
+    "devoirs": [
+        {
+            "titre": "DM1",
+            "type": "DM",
+            "partie": "sujet",
+            "fichier": "pdf/dm01-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm01-sujet.pdf"
+        },
+        {
+            "titre": "DM1",
+            "type": "DM",
+            "partie": "corrige",
+            "fichier": "pdf/dm01-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm01-corrige.pdf"
+        },
+        {
+            "titre": "DM2",
+            "type": "DM",
+            "partie": "sujet",
+            "fichier": "pdf/dm02-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm02-sujet.pdf"
+        },
+        {
+            "titre": "DM2",
+            "type": "DM",
+            "partie": "corrige",
+            "fichier": "pdf/dm02-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm02-corrige.pdf"
+        },
+        {
+            "titre": "DM3",
+            "type": "DM",
+            "partie": "sujet",
+            "fichier": "pdf/dm03-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm03-sujet.pdf"
+        },
+        {
+            "titre": "DS1",
+            "type": "DS",
+            "partie": "sujet",
+            "fichier": "pdf/ds01-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/ds01-sujet.pdf"
+        },
+        {
+            "titre": "DS1",
+            "type": "DS",
+            "partie": "corrige",
+            "fichier": "pdf/ds01-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/ds01-corrige.pdf"
+        }
+    ]
 }
