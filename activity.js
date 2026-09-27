@@ -6,7 +6,7 @@ const ACTIVITY_KEY = "mp2i-activity";
 
 
 // ========================================
-// DONNÉES
+// CHARGEMENT
 // ========================================
 
 function loadActivity() {
@@ -23,21 +23,21 @@ function loadActivity() {
 
             return {
                 days: data.days || {},
-                documents: Array.isArray(data.documents)
-                    ? data.documents
-                    : [],
+                documents:
+                    Array.isArray(data.documents)
+                        ? data.documents
+                        : [],
                 totalSeconds:
-                    Number(data.totalSeconds) || 0
+                    Number(data.totalSeconds) || 0,
+                lastActive:
+                    Number(data.lastActive) || Date.now()
             };
 
         }
 
     } catch (error) {
 
-        console.error(
-            "Erreur activité :",
-            error
-        );
+        console.error(error);
 
     }
 
@@ -45,28 +45,47 @@ function loadActivity() {
     return {
         days: {},
         documents: [],
-        totalSeconds: 0
+        totalSeconds: 0,
+        lastActive: Date.now()
     };
 
 }
 
 
-let activityData =
+let activity =
     loadActivity();
+
+
+// ========================================
+// SAUVEGARDE
+// ========================================
+
+function save() {
+
+    localStorage.setItem(
+        ACTIVITY_KEY,
+        JSON.stringify(activity)
+    );
+
+}
 
 
 // ========================================
 // DATE
 // ========================================
 
-function getDateKey(date = new Date()) {
+function dateKey(date = new Date()) {
 
     return (
         date.getFullYear() +
         "-" +
-        String(date.getMonth() + 1).padStart(2, "0") +
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0") +
         "-" +
-        String(date.getDate()).padStart(2, "0")
+        String(
+            date.getDate()
+        ).padStart(2, "0")
     );
 
 }
@@ -76,15 +95,15 @@ function getDateKey(date = new Date()) {
 // JOUR
 // ========================================
 
-function getTodayData() {
+function today() {
 
-    const today =
-        getDateKey();
+    const key =
+        dateKey();
 
 
-    if (!activityData.days[today]) {
+    if (!activity.days[key]) {
 
-        activityData.days[today] = {
+        activity.days[key] = {
             minutes: 0,
             documents: 0
         };
@@ -92,21 +111,7 @@ function getTodayData() {
     }
 
 
-    return activityData.days[today];
-
-}
-
-
-// ========================================
-// SAUVEGARDE
-// ========================================
-
-function saveActivity() {
-
-    localStorage.setItem(
-        ACTIVITY_KEY,
-        JSON.stringify(activityData)
-    );
+    return activity.days[key];
 
 }
 
@@ -115,24 +120,24 @@ function saveActivity() {
 // TIMER
 // ========================================
 
-let lastTimestamp =
+let lastTick =
     Date.now();
 
 
-let timerRunning =
-    document.visibilityState === "visible";
+let running = true;
 
 
-function tickTimer() {
+/*
+ * Au chargement d'une nouvelle page,
+ * on repart du timestamp sauvegardé.
+ */
+activity.lastActive =
+    Date.now();
 
-    if (!timerRunning) {
 
-        lastTimestamp =
-            Date.now();
+function tick() {
 
-        return;
-
-    }
+    if (!running) return;
 
 
     const now =
@@ -140,41 +145,50 @@ function tickTimer() {
 
 
     const elapsed =
-        (now - lastTimestamp) / 1000;
+        (now - lastTick) / 1000;
 
 
-    /*
-     * Protection :
-     * on ignore un changement
-     * de page extrêmement long.
-     */
     if (
         elapsed > 0 &&
-        elapsed < 120
+        elapsed < 10
     ) {
 
-        activityData.totalSeconds +=
+        activity.totalSeconds +=
             elapsed;
 
 
-        const today =
-            getTodayData();
-
-
-        today.minutes +=
+        today().minutes +=
             elapsed / 60;
 
     }
 
 
-    lastTimestamp =
+    lastTick =
         now;
 
 }
 
 
 // ========================================
-// VISIBILITÉ
+// TIMER LIVE
+// ========================================
+
+setInterval(() => {
+
+    tick();
+
+    activity.lastActive =
+        Date.now();
+
+    save();
+
+    updateDashboard();
+
+}, 1000);
+
+
+// ========================================
+// CHANGEMENT D'ONGLET
 // ========================================
 
 document.addEventListener(
@@ -186,18 +200,21 @@ document.addEventListener(
             "visible"
         ) {
 
-            timerRunning = true;
+            running = true;
 
-            lastTimestamp =
+            lastTick =
                 Date.now();
 
         } else {
 
-            tickTimer();
+            tick();
 
-            timerRunning = false;
+            running = false;
 
-            saveActivity();
+            activity.lastActive =
+                Date.now();
+
+            save();
 
         }
 
@@ -215,7 +232,7 @@ function registerDocument(url) {
 
 
     if (
-        activityData.documents.includes(url)
+        activity.documents.includes(url)
     ) {
 
         return;
@@ -223,18 +240,13 @@ function registerDocument(url) {
     }
 
 
-    activityData.documents.push(url);
+    activity.documents.push(url);
 
 
-    const today =
-        getTodayData();
+    today().documents++;
 
 
-    today.documents++;
-
-
-    saveActivity();
-
+    save();
 
     updateDashboard();
 
@@ -257,8 +269,11 @@ document.addEventListener(
 
 
         if (
-            href.toLowerCase().includes(".pdf") ||
-            href.includes("notebook.google.com")
+            href.toLowerCase()
+                .includes(".pdf") ||
+            href.includes(
+                "notebook.google.com"
+            )
         ) {
 
             registerDocument(href);
@@ -273,10 +288,9 @@ document.addEventListener(
 // STREAK
 // ========================================
 
-function calculateStreak() {
+function streak() {
 
-    let streak = 0;
-
+    let count = 0;
 
     const date =
         new Date();
@@ -284,12 +298,10 @@ function calculateStreak() {
 
     while (true) {
 
-        const key =
-            getDateKey(date);
-
-
         const day =
-            activityData.days[key];
+            activity.days[
+                dateKey(date)
+            ];
 
 
         if (
@@ -305,7 +317,7 @@ function calculateStreak() {
         }
 
 
-        streak++;
+        count++;
 
 
         date.setDate(
@@ -315,7 +327,7 @@ function calculateStreak() {
     }
 
 
-    return streak;
+    return count;
 
 }
 
@@ -324,18 +336,14 @@ function calculateStreak() {
 // JOURS ACTIFS
 // ========================================
 
-function calculateActiveDays() {
+function activeDays() {
 
     return Object.values(
-        activityData.days
-    ).filter(day => {
-
-        return (
-            day.minutes > 0 ||
-            day.documents > 0
-        );
-
-    }).length;
+        activity.days
+    ).filter(day =>
+        day.minutes > 0 ||
+        day.documents > 0
+    ).length;
 
 }
 
@@ -350,47 +358,47 @@ function formatTime(seconds) {
         Math.floor(seconds);
 
 
-    const hours =
+    const h =
         Math.floor(
             seconds / 3600
         );
 
 
-    const minutes =
+    const m =
         Math.floor(
             (seconds % 3600) / 60
         );
 
 
-    const secs =
+    const s =
         seconds % 60;
 
 
-    if (hours > 0) {
+    if (h > 0) {
 
         return (
-            hours +
+            h +
             "h " +
-            String(minutes).padStart(2, "0") +
+            String(m).padStart(2, "0") +
             " min"
         );
 
     }
 
 
-    if (minutes > 0) {
+    if (m > 0) {
 
         return (
-            minutes +
+            m +
             " min " +
-            String(secs).padStart(2, "0") +
+            String(s).padStart(2, "0") +
             " s"
         );
 
     }
 
 
-    return secs + " s";
+    return s + " s";
 
 }
 
@@ -399,22 +407,14 @@ function formatTime(seconds) {
 // HEATMAP
 // ========================================
 
-function getIntensity(day) {
+function intensity(day) {
 
     if (!day) return 0;
 
 
-    const minutes =
-        Number(day.minutes) || 0;
-
-
-    const documents =
-        Number(day.documents) || 0;
-
-
     const score =
-        minutes +
-        documents * 5;
+        (day.minutes || 0) +
+        (day.documents || 0) * 5;
 
 
     if (score <= 0) return 0;
@@ -444,7 +444,7 @@ function generateHeatmap() {
     heatmap.innerHTML = "";
 
 
-    const today =
+    const now =
         new Date();
 
 
@@ -455,20 +455,20 @@ function generateHeatmap() {
     ) {
 
         const date =
-            new Date(today);
+            new Date(now);
 
 
         date.setDate(
-            today.getDate() - i
+            now.getDate() - i
         );
 
 
         const key =
-            getDateKey(date);
+            dateKey(date);
 
 
         const day =
-            activityData.days[key];
+            activity.days[key];
 
 
         const cell =
@@ -477,31 +477,18 @@ function generateHeatmap() {
 
         cell.className =
             "activity-cell activity-" +
-            getIntensity(day);
-
-
-        const minutes =
-            Math.floor(
-                day?.minutes || 0
-            );
-
-
-        const documents =
-            day?.documents || 0;
+            intensity(day);
 
 
         cell.title =
             key +
             " · " +
-            minutes +
+            Math.floor(
+                day?.minutes || 0
+            ) +
             " min · " +
-            documents +
-            " document" +
-            (
-                documents > 1
-                    ? "s"
-                    : ""
-            );
+            (day?.documents || 0) +
+            " document(s)";
 
 
         heatmap.appendChild(cell);
@@ -517,61 +504,60 @@ function generateHeatmap() {
 
 function updateDashboard() {
 
-    const streak =
+    const streakEl =
         document.getElementById(
             "activityStreak"
         );
 
 
-    const documents =
+    const documentsEl =
         document.getElementById(
             "activityDocuments"
         );
 
 
-    const time =
+    const timeEl =
         document.getElementById(
             "activityTime"
         );
 
 
-    const days =
+    const daysEl =
         document.getElementById(
             "activityDays"
         );
 
 
-    if (streak) {
+    if (streakEl) {
 
-        streak.textContent =
-            calculateStreak() +
-            " jours";
-
-    }
-
-
-    if (documents) {
-
-        documents.textContent =
-            activityData.documents.length;
+        streakEl.textContent =
+            streak() + " jours";
 
     }
 
 
-    if (time) {
+    if (documentsEl) {
 
-        time.textContent =
+        documentsEl.textContent =
+            activity.documents.length;
+
+    }
+
+
+    if (timeEl) {
+
+        timeEl.textContent =
             formatTime(
-                activityData.totalSeconds
+                activity.totalSeconds
             );
 
     }
 
 
-    if (days) {
+    if (daysEl) {
 
-        days.textContent =
-            calculateActiveDays();
+        daysEl.textContent =
+            activeDays();
 
     }
 
@@ -581,54 +567,31 @@ function updateDashboard() {
 }
 
 
-// Alias utilisé après ajout d'un document
-function updateActivityDashboard() {
-
-    updateDashboard();
-
-}
-
-
 // ========================================
 // INITIALISATION
 // ========================================
 
-getTodayData();
+today();
 
 updateDashboard();
 
-
-// ========================================
-// TIMER LIVE
-// ========================================
-
-setInterval(() => {
-
-    tickTimer();
-
-    updateDashboard();
-
-}, 1000);
+save();
 
 
 // ========================================
-// SAUVEGARDE
+// AVANT DE QUITTER
 // ========================================
-
-setInterval(() => {
-
-    saveActivity();
-
-}, 10000);
-
 
 window.addEventListener(
-    "beforeunload",
+    "pagehide",
     () => {
 
-        tickTimer();
+        tick();
 
-        saveActivity();
+        activity.lastActive =
+            Date.now();
+
+        save();
 
     }
 );
