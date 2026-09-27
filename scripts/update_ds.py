@@ -27,9 +27,12 @@ session = requests.Session()
 
 response = session.get(
     PAGE_URL,
+    auth=HTTPDigestAuth(
+        PDF_ID,
+        PASSWORD
+    ),
     timeout=30
 )
-
 print("Page HTTP :", response.status_code)
 
 response.raise_for_status()
