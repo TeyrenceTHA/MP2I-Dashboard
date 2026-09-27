@@ -1,17 +1,12 @@
 import os
 import json
-import re
 from pathlib import Path
-from urllib.parse import urljoin
 
 import requests
-from bs4 import BeautifulSoup
 from requests.auth import HTTPDigestAuth
 
 
 BASE_URL = "https://maths-cpge.fr"
-PAGE_URL = BASE_URL + "/devoirs/"
-
 PDF_ID = os.environ["MATHS_CPGE_ID"]
 PASSWORD = os.environ["MATHS_CPGE_PASSWORD"]
 
@@ -19,159 +14,66 @@ OUTPUT_DIR = Path("programmes/ds")
 PDF_DIR = OUTPUT_DIR / "pdf"
 JSON_FILE = OUTPUT_DIR / "ds.json"
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 
-
 session = requests.Session()
 
-session = requests.Session()
-
-headers = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/130.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"
-}
-
-response = session.get(
-    PAGE_URL,
-    headers=headers,
-    timeout=30
-)
-
-response.raise_for_status()
-print("Page HTTP :", response.status_code)
-
-response.raise_for_status()
-print("=== CONTENU AUTOUR DE DEVOIRS ===")
-
-for ligne in response.text.splitlines():
-    if "dm02" in ligne.lower() or "ds02" in ligne.lower():
-        print(ligne)
-
-print("=== FIN ===")
-
-print("Taille de la page :", len(response.text))
-
-soup = BeautifulSoup(
-    response.text,
-    "html.parser"
-)
-print("=== RECHERCHE PDF DANS LE HTML ===")
-
-pdf_matches = re.findall(
-    r'[^"\']+\.pdf',
-    response.text,
-    re.IGNORECASE
-)
-
-for match in pdf_matches:
-    print("PDF TROUVÉ :", match)
-
-print("Nombre de PDF :", len(pdf_matches))
-print("Nombre de liens :", len(soup.find_all("a")))
-
-for link in soup.find_all("a", href=True):
-    href = link["href"].strip()
-
-    if "devoir" in href.lower() or ".pdf" in href.lower():
-        print("LIEN TROUVÉ :", href)
-
+auth = HTTPDigestAuth(PDF_ID, PASSWORD)
 
 documents = []
 
+for type_devoir in ["dm", "ds"]:
 
-for link in soup.find_all("a", href=True):
+    for numero in range(1, 51):
 
-    href = link["href"].strip()
+        for partie in ["sujet", "corrige"]:
 
-    # On cherche directement les fichiers DM/DS
-    match = re.search(
-        r"(dm|ds)(\d+)[^/]*\.pdf",
-        href,
-        re.IGNORECASE
-    )
+            filename = (
+                f"{type_devoir}{numero:02d}-{partie}.pdf"
+            )
 
-    if not match:
-        continue
+            url = f"{BASE_URL}/docs/devoirs/{filename}"
 
+            try:
+                response = session.get(
+                    url,
+                    auth=auth,
+                    timeout=20
+                )
 
-    type_devoir = match.group(1).upper()
-    numero = int(match.group(2))
+                if response.status_code == 404:
+                    continue
 
-    filename = Path(href).name
+                response.raise_for_status()
 
+                # Vérifier que la réponse est bien un PDF
+                if not response.content.startswith(b"%PDF"):
+                    print("Fichier ignoré :", filename)
+                    continue
 
-    if filename in [
-        document["fichier"]
-        for document in documents
-    ]:
-        continue
+                local_path = PDF_DIR / filename
+                local_path.write_bytes(response.content)
 
+                titre = f"{type_devoir.upper()}{numero}"
 
-    url = urljoin(
-        BASE_URL,
-        href
-    )
+                documents.append({
+                    "titre": titre,
+                    "type": type_devoir.upper(),
+                    "partie": partie,
+                    "fichier": f"pdf/{filename}",
+                    "source": url
+                })
 
+                print("Téléchargé :", filename)
 
-    titre = f"{type_devoir}{numero}"
-
-
-    local_path = PDF_DIR / filename
-
-
-    print()
-    print("Trouvé :", filename)
-    print("URL :", url)
-
-
-    pdf = session.get(
-        url,
-        auth=HTTPDigestAuth(
-            PDF_ID,
-            PASSWORD
-        ),
-        timeout=30
-    )
-
-
-    print(
-        "Réponse PDF :",
-        pdf.status_code
-    )
-
-
-    pdf.raise_for_status()
-
-
-    local_path.write_bytes(
-        pdf.content
-    )
-
-
-    print(
-        "Enregistré :",
-        local_path
-    )
-
-
-    documents.append({
-        "titre": titre,
-        "type": type_devoir,
-        "fichier": f"pdf/{filename}",
-        "source": url
-    })
+            except requests.RequestException as error:
+                print("Erreur :", filename, error)
 
 
 data = {
-    "source": PAGE_URL,
+    "source": BASE_URL + "/devoirs/",
     "devoirs": documents
 }
-
 
 JSON_FILE.write_text(
     json.dumps(
@@ -182,7 +84,6 @@ JSON_FILE.write_text(
     encoding="utf-8"
 )
 
-
 print()
-print("DS trouvés :", len(documents))
+print("Documents trouvés :", len(documents))
 print("JSON mis à jour :", JSON_FILE)
