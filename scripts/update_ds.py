@@ -7,6 +7,7 @@ from requests.auth import HTTPDigestAuth
 
 
 BASE_URL = "https://maths-cpge.fr"
+
 PDF_ID = os.environ["MATHS_CPGE_ID"]
 PASSWORD = os.environ["MATHS_CPGE_PASSWORD"]
 
@@ -16,11 +17,17 @@ JSON_FILE = OUTPUT_DIR / "ds.json"
 
 PDF_DIR.mkdir(parents=True, exist_ok=True)
 
+
 session = requests.Session()
 
-auth = HTTPDigestAuth(PDF_ID, PASSWORD)
+auth = HTTPDigestAuth(
+    PDF_ID,
+    PASSWORD
+)
+
 
 documents = []
+
 
 for type_devoir in ["dm", "ds"]:
 
@@ -32,58 +39,116 @@ for type_devoir in ["dm", "ds"]:
                 f"{type_devoir}{numero:02d}-{partie}.pdf"
             )
 
-            url = f"{BASE_URL}/docs/devoirs/{filename}"
+            url = (
+                f"{BASE_URL}/docs/devoirs/"
+                f"{filename}"
+            )
+
+            print("Test :", filename)
 
             try:
+
                 response = session.get(
                     url,
                     auth=auth,
                     timeout=20
                 )
 
-                if response.status_code == 404:
+                print(
+                    "HTTP :",
+                    response.status_code
+                )
+
+
+                if response.status_code != 200:
                     continue
 
-                response.raise_for_status()
 
-                # Vérifier que la réponse est bien un PDF
-                if not response.content.startswith(b"%PDF"):
-                    print("Fichier ignoré :", filename)
+                if not response.content.startswith(
+                    b"%PDF"
+                ):
+                    print(
+                        "Pas un PDF :",
+                        filename
+                    )
                     continue
 
-                local_path = PDF_DIR / filename
-                local_path.write_bytes(response.content)
 
-                titre = f"{type_devoir.upper()}{numero}"
+                local_path = (
+                    PDF_DIR / filename
+                )
+
+                local_path.write_bytes(
+                    response.content
+                )
+
 
                 documents.append({
-                    "titre": titre,
-                    "type": type_devoir.upper(),
-                    "partie": partie,
-                    "fichier": f"pdf/{filename}",
-                    "source": url
+
+                    "titre":
+                        f"{type_devoir.upper()}{numero}",
+
+                    "type":
+                        type_devoir.upper(),
+
+                    "partie":
+                        partie,
+
+                    "fichier":
+                        f"pdf/{filename}",
+
+                    "source":
+                        url
+
                 })
 
-                print("Téléchargé :", filename)
 
-            except requests.RequestException as error:
-                print("Erreur :", filename, error)
+                print(
+                    "Téléchargé :",
+                    filename
+                )
+
+
+            except Exception as error:
+
+                print(
+                    "Erreur :",
+                    filename,
+                    error
+                )
 
 
 data = {
-    "source": BASE_URL + "/devoirs/",
-    "devoirs": documents
+
+    "source":
+        BASE_URL + "/devoirs/",
+
+    "devoirs":
+        documents
+
 }
 
+
 JSON_FILE.write_text(
+
     json.dumps(
         data,
         indent=4,
         ensure_ascii=False
     ),
+
     encoding="utf-8"
+
 )
 
+
 print()
-print("Documents trouvés :", len(documents))
-print("JSON mis à jour :", JSON_FILE)
+print(
+    "Documents trouvés :",
+    len(documents)
+)
+
+print(
+    "JSON mis à jour :",
+    JSON_FILE
+)
