@@ -37,6 +37,13 @@
             "source": "https://maths-cpge.fr/docs/devoirs/dm03-sujet.pdf"
         },
         {
+            "titre": "DM3",
+            "type": "DM",
+            "partie": "corrige",
+            "fichier": "pdf/dm03-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm03-corrige.pdf"
+        },
+        {
             "titre": "DS1",
             "type": "DS",
             "partie": "sujet",
