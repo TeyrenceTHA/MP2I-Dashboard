@@ -44,6 +44,13 @@
             "source": "https://maths-cpge.fr/docs/devoirs/dm03-corrige.pdf"
         },
         {
+            "titre": "DM4",
+            "type": "DM",
+            "partie": "sujet",
+            "fichier": "pdf/dm04-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm04-sujet.pdf"
+        },
+        {
             "titre": "DS1",
             "type": "DS",
             "partie": "sujet",
@@ -56,6 +63,20 @@
             "partie": "corrige",
             "fichier": "pdf/ds01-corrige.pdf",
             "source": "https://maths-cpge.fr/docs/devoirs/ds01-corrige.pdf"
+        },
+        {
+            "titre": "DS2",
+            "type": "DS",
+            "partie": "sujet",
+            "fichier": "pdf/ds02-sujet.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/ds02-sujet.pdf"
+        },
+        {
+            "titre": "DS2",
+            "type": "DS",
+            "partie": "corrige",
+            "fichier": "pdf/ds02-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/ds02-corrige.pdf"
         }
     ]
 }
