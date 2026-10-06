@@ -76,11 +76,6 @@
       "url": "ch05-td.pdf"
     },
     {
-      "chapitre": "ch05",
-      "type": "correction",
-      "url": "ch05-td-correction.pdf"
-    },
-    {
       "chapitre": "ch06",
       "type": "cours",
       "url": "ch06-cours.pdf"
@@ -89,6 +84,16 @@
       "chapitre": "ch06",
       "type": "td",
       "url": "ch06-td.pdf"
+    },
+    {
+      "chapitre": "ch07",
+      "type": "cours",
+      "url": "ch07-cours.pdf"
+    },
+    {
+      "chapitre": "ch07",
+      "type": "td",
+      "url": "ch07-td.pdf"
     }
   ]
 }
