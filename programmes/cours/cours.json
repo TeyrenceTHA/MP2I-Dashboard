@@ -99,6 +99,16 @@
       "chapitre": "ch07",
       "type": "td",
       "url": "ch07-td.pdf"
+    },
+    {
+      "chapitre": "ch08",
+      "type": "cours",
+      "url": "ch08-cours.pdf"
+    },
+    {
+      "chapitre": "ch08",
+      "type": "td",
+      "url": "ch08-td.pdf"
     }
   ]
 }
