@@ -51,6 +51,13 @@
             "source": "https://maths-cpge.fr/docs/devoirs/dm04-sujet.pdf"
         },
         {
+            "titre": "DM4",
+            "type": "DM",
+            "partie": "corrige",
+            "fichier": "pdf/dm04-corrige.pdf",
+            "source": "https://maths-cpge.fr/docs/devoirs/dm04-corrige.pdf"
+        },
+        {
             "titre": "DM5",
             "type": "DM",
             "partie": "sujet",
