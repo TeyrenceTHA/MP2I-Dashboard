@@ -91,6 +91,11 @@
       "url": "ch06-td.pdf"
     },
     {
+      "chapitre": "ch06",
+      "type": "correction",
+      "url": "ch06-td-correction.pdf"
+    },
+    {
       "chapitre": "ch07",
       "type": "cours",
       "url": "ch07-cours.pdf"
