@@ -2,6 +2,12 @@
     "source": "https://maths-cpge.fr/colles/",
     "programmes": [
         {
+            "semaine": "Colle 6",
+            "titre": "Programme détaillé",
+            "fichier": "pdf/colle06.pdf",
+            "source": "https://maths-cpge.fr/docs/colles/colle06.pdf"
+        },
+        {
             "semaine": "Colle 5",
             "titre": "Programme détaillé",
             "fichier": "pdf/colle05.pdf",
